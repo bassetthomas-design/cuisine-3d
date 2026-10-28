@@ -32,7 +32,7 @@
 <details id="legend" open>
   <summary id="legTitle">Cuisine en L + îlot central (légende)</summary>
   <div class="b">
-    <p style="margin:0 0 4px"><b>Finitions</b> : façades noir mat, poignées inox brossé, plans de travail en bois</p>
+    <p style="margin:0 0 4px"><b>Finitions</b> : <span id="finTxt">façades noir mat, poignées inox brossé, plans de travail en bois</span></p>
     <div id="legL">
       <h4>Mur nord – <span class="r">3,02 m</span> (cote plan) prolongé à <span class="bl">4,00 m</span></h4>
       <ul>
@@ -80,13 +80,14 @@
   <button data-v="ensemble" class="on">Vue d'ensemble</button>
   <button data-v="dessus">Vue de dessus</button>
   <button data-v="sejour">Vue depuis le séjour</button>
+  <button id="bFac">Façades : Noir ⇄ Blanc</button>
   <button id="bCotes" class="on">Cotes</button>
   <button id="bMurs">Murs transparents</button>
 </div>
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-// version: cuisine3d-v5-U-peninsule-256
+// version: cuisine3d-v6-facades-noir-blanc
 // Repère : x = est (0 = face intérieure du mur est, négatif vers l'ouest)
 //          z = sud (0 = face intérieure du mur nord), y = hauteur. Mètres.
 const canvas = document.getElementById('c');
@@ -246,7 +247,7 @@ windowAt(BAIE[0], BAIE[1], 0.0, 2.15);
 B(-0.04, 0.0, 0, 2.04, DOOR[0]-0.02, DOOR[0], M.frame); B(-0.04,0.0,0,2.04,DOOR[1],DOOR[1]+0.02,M.frame);
 
 // ---------- Façades & poignées (inox brossé) ----------
-const HM = M.inox;
+const HM = M.inox.clone();   // poignées (inox sur noir, noir mat sur blanc)
 // façade orientée sud (face avant en z = zf)
 function frontZ(x0,x1,y0,y1,zf,mat=M.front,handle=true){
   B(x0+GAP,x1-GAP,y0+GAP,y1-GAP,zf-0.02,zf,mat);
@@ -524,6 +525,22 @@ function setView(name, instant=false){
 }
 document.querySelectorAll('#ui button[data-v]').forEach(b=>b.addEventListener('click', ()=>setView(b.dataset.v)));
 document.getElementById('bMode').addEventListener('click', ()=>setMode(MODE==='L'?'U':'L'));
+// ---------- Option façades : noir mat / blanc mat ----------
+const FAC = {
+  noir:  {front:0x1f2023, frontG:0x2a2b2e, carcass:0x2c2d30, h:[0xc4c8cc,0.32,0.85], txt:'façades noir mat, poignées inox brossé, plans de travail en bois', btn:'Façades : Noir ⇄ Blanc'},
+  blanc: {front:0xf2f1ee, frontG:0xe6e5e1, carcass:0xe2e0dc, h:[0x151517,0.45,0.35], txt:'façades blanc mat, poignées noir mat, plans de travail en bois', btn:'Façades : Blanc ⇄ Noir'}
+};
+let FACADE = 'noir';
+function setFacade(f){
+  FACADE = f; const c = FAC[f];
+  M.front.color.setHex(c.front); M.frontG.color.setHex(c.frontG); M.carcass.color.setHex(c.carcass);
+  HM.color.setHex(c.h[0]); HM.roughness = c.h[1]; HM.metalness = c.h[2];
+  document.getElementById('finTxt').textContent = c.txt;
+  document.getElementById('bFac').textContent = c.btn;
+  const u = new URL(location.href); if (f==='blanc') u.searchParams.set('facade','blanc'); else u.searchParams.delete('facade');
+  history.replaceState(null, '', u);
+}
+document.getElementById('bFac').addEventListener('click', ()=>setFacade(FACADE==='noir'?'blanc':'noir'));
 const bC = document.getElementById('bCotes');
 bC.addEventListener('click', ()=>{ dims.visible = !dims.visible; bC.classList.toggle('on', dims.visible); });
 const bM = document.getElementById('bMurs'); let transp = false;
@@ -539,6 +556,7 @@ window.addEventListener('resize', resize); resize();
 const params = new URLSearchParams(location.search);
 if (params.get('legend') === '0') document.getElementById('legend').open = false;
 setMode((params.get('mode')||'').toLowerCase()==='u' ? 'U' : 'L');
+setFacade((params.get('facade')||'').toLowerCase().startsWith('blanc') ? 'blanc' : 'noir');
 setView((location.hash||'#ensemble').slice(1), true);
 
 const ease = t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
