@@ -32,7 +32,7 @@
 <details id="legend" open>
   <summary id="legTitle">Cuisine en L + îlot central (légende)</summary>
   <div class="b">
-    <p style="margin:0 0 4px"><b>Finitions</b> : façades noir mat, poignées inox brossé, plans de travail et table en bois</p>
+    <p style="margin:0 0 4px"><b>Finitions</b> : façades noir mat, poignées inox brossé, plans de travail en bois</p>
     <div id="legL">
       <h4>Mur nord – <span class="r">3,02 m</span> (cote plan) prolongé à <span class="bl">4,00 m</span></h4>
       <ul>
@@ -51,18 +51,19 @@
       </ul>
     </div>
     <div id="legU" style="display:none">
-      <h4>Mur nord – <span class="r">3,02 m</span> (linéaire réel 2,95 m)</h4>
+      <h4>Mur nord – <span class="r">3,02 m</span> (cote plan) prolongé à <span class="bl">4,00 m</span></h4>
       <ul>
-        <li>Évier noir, meuble 78 cm sous la fenêtre + lave-vaisselle 60 cm</li>
-        <li>Angles aveugles aux deux extrémités (prolongement supprimé en mode U)</li>
+        <li>Angle sous la péninsule, lave-vaisselle 60 cm</li>
+        <li>Évier noir + mitigeur noir, meuble 80 cm sous la fenêtre</li>
+        <li>Tiroirs 60 cm + meuble d'angle 40 cm</li>
       </ul>
       <h4>Mur est – <span class="r">2,56 m</span></h4>
       <ul><li>Angle + tiroirs 72 cm, colonne four + micro-ondes 60, colonne frigo 60</li></ul>
-      <h4>Péninsule 2,80 × 0,97 m (ferme le U à l'ouest)</h4>
+      <h4>Péninsule 2,80 × 0,97 m (bout ouest, ≈ 19 cm de la baie vitrée)</h4>
       <ul>
         <li>Plaque induction 4 foyers + hotte plafond, tiroirs/casseroliers côté cuisine</li>
         <li>Débord 33 cm + 3 tabourets côté pièce de vie / salon</li>
-        <li><span class="bl">Entre les branches</span> : péninsule ↔ mur est 1,38 m ; U ouvert vers le sud (escalier, entrée)</li>
+        <li><span class="bl">Espace central</span> : 2,43 m (péninsule ↔ mur est) × 2,18 m (mur nord ↔ bout de péninsule), U ouvert au sud</li>
       </ul>
     </div>
     <h4>Cotes standard</h4>
@@ -84,7 +85,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-// version: cuisine3d-v3-modes-LU
+// version: cuisine3d-v4-U-baie-sans-table
 // Repère : x = est (0 = face intérieure du mur est, négatif vers l'ouest)
 //          z = sud (0 = face intérieure du mur nord), y = hauteur. Mètres.
 const canvas = document.getElementById('c');
@@ -386,18 +387,22 @@ for (const x of [-3.15, -2.65, -2.15]) stool(x, 2.86);
 // MODE U : nord 2,95 m + est 2,56 m + péninsule nord-sud 2,80 m (ouverte au sud)
 // =====================================================================
 const gU = new THREE.Group(); scene.add(gU); CUR = gU;
-const PU = {x0:-2.95, xb:-2.62, xf:-1.98, z1:2.80};   // débord ouest, dos, façade est, bout sud
-B(PU.x0, 0, TOPY0, TOPY1, 0, 0.62, M.top);                         // plan nord
+// péninsule à l'extrémité ouest : débord jusqu'à x = -4.00 (≈ 19 cm de la baie)
+const PU = {x0:-4.00, xb:-3.67, xf:-3.03, z1:2.80};   // débord ouest, dos, façade est, bout sud
+B(PU.x0, 0, TOPY0, TOPY1, 0, 0.62, M.top);                         // plan nord 4,00 m
 B(PU.xb, 0, PL, TOPY0, 0, NF-0.02, M.carcass);
 B(PU.xb+0.02, 0, 0, PL, 0, NF-0.08, M.plinth);
 B(PU.x0, FEN[0], TOPY1, 1.45, 0, 0.008, M.splash, {cast:false});
 B(FEN[1], 0, TOPY1, 1.45, 0, 0.008, M.splash, {cast:false});
 B(FEN[0], FEN[1], TOPY1, 1.20, 0, 0.008, M.splash, {cast:false});
-frontZ(-1.98, -1.59, PL, TOPY0, NF); frontZ(-1.59, -1.20, PL, TOPY0, NF); // sous-évier 78
-frontZ(-1.20, -0.62, PL, TOPY0, NF);                                     // lave-vaisselle
+frontZ(-3.01, -2.42, PL, TOPY0, NF);                                 // lave-vaisselle
+frontZ(-2.42, -2.02, PL, TOPY0, NF); frontZ(-2.02, -1.62, PL, TOPY0, NF); // sous-évier 80
+for (const [a,b] of drawers3) frontZ(-1.62, -1.02, a, b, NF);
+frontZ(-1.02, -0.62, PL, TOPY0, NF);                                 // porte d'angle
 B(-0.62, -0.60, PL, TOPY0, NF-0.02, NF, M.frontG);
-sinkAt(-1.59);
-// péninsule
+sinkAt(-2.02);
+upperZ(PU.x0, FEN[0]);
+// péninsule (caissons x -3.65 → -3.05, façades vers l'est)
 B(PU.xb+0.02, PU.xf-0.02, PL, TOPY0, 0.60, PU.z1-0.02, M.carcass);
 B(PU.xb+0.06, PU.xf-0.06, 0, PL, 0.62, PU.z1-0.06, M.plinth);
 B(PU.xb, PU.xb+0.02, 0, TOPY0, 0, PU.z1, M.front);                 // panneau dos côté salon
@@ -408,11 +413,11 @@ frontXe(1.22, 2.02, PL, 0.48, PU.xf); frontXe(1.22, 2.02, 0.48, TOPY0, PU.xf);
 for (const [a,b] of drawers3) frontXe(2.02, PU.z1-0.02, a, b, PU.xf);
 const HOB_U = {x:(PU.xb+PU.xf)/2, z:1.62};
 hobAt(HOB_U.x, HOB_U.z, false); hoodAt(HOB_U.x, HOB_U.z, false);
-for (const z of [1.15, 1.70, 2.25]) stool(-3.16, z);
+for (const z of [1.40, 1.95, 2.50]) stool(-4.21, z);
 CUR = scene;
 
 // =====================================================================
-// CONTEXTE : escalier (haut côté cuisine), table à manger
+// CONTEXTE : escalier (haut côté cuisine)
 // =====================================================================
 const SX0 = -1.00, SZ0 = 3.35, NST = 15, TR = 0.25, RI = 0.18;
 for (let i=0;i<NST;i++){            // i = 0 : marche la plus haute (côté cuisine)
@@ -427,11 +432,6 @@ walls.push(B(SX0-0.07, 0, 0, RI*NST, SZ0-0.07, SZ0, M.wall.clone())); // face ha
   const len = a.distanceTo(b), m = new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,len,12), M.black);
   m.position.copy(a).add(b).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(V3(0,1,0), b.clone().sub(a).normalize()); scene.add(m); }
 function V3(x,y,z){ return new THREE.Vector3(x,y,z); }
-// table à manger bois
-B(-6.5, -4.7, 0.72, 0.76, 1.20, 2.10, M.top);
-for (const [x,z] of [[-6.4,1.3],[-4.8,1.3],[-6.4,2.0],[-4.8,2.0]]) B(x-0.03,x+0.03,0,0.72,z-0.03,z+0.03,M.black);
-for (const x of [-6.1,-5.6,-5.1]) for (const z of [0.85, 2.45]) B(x-0.21,x+0.21,0,0.46,z-0.21,z+0.21,M.ghost);
-
 // =====================================================================
 // COTES
 // =====================================================================
@@ -478,11 +478,12 @@ dimLine(V3(-3.75,0.97,IL.z0), V3(-3.75,0.97,IL.z1), BLUE, '1,00 m', V3(-0.2,0.10
 hoodLabels.push(label('Hotte plafond', DARK, V3(HOB_L.x, 2.30, HOB_L.z-0.45), 0.8));
 // mode U
 DIM = dimsU;
-dimLine(V3(PU.x0,1.15,0.35), V3(0,1.15,0.35), BLUE, 'linéaire nord 2,95 m', V3(-1.0,0.42,0));
-dimLine(V3(-3.25,0.97,0), V3(-3.25,0.97,PU.z1), BLUE, 'péninsule 2,80 m', V3(-0.25,0.12,0), V3(0.05,0,0));
+dimLine(V3(PU.x0,1.15,0.35), V3(0,1.15,0.35), BLUE, 'linéaire nord 4,00 m', V3(-1.4,0.42,0));
+dimLine(V3(-4.45,0.97,0), V3(-4.45,0.97,PU.z1), BLUE, 'péninsule 2,80 m', V3(-0.25,0.12,0), V3(0.05,0,0));
 dimLine(V3(PU.x0,0.97,3.0), V3(PU.xf,0.97,3.0), BLUE, '0,97 m', V3(0,0.10,0.1), V3(0,0,0.05));
-dimLine(V3(PU.xf,0.02,1.00), V3(EF,0.02,1.00), BLUE, '1,38 m', V3(0,0.10,0), V3(0,0,0.06));
-hoodLabels.push(label('Hotte plafond', DARK, V3(HOB_U.x+0.5, 2.30, HOB_U.z), 0.8));
+dimLine(V3(PU.xf,0.02,1.00), V3(EF,0.02,1.00), BLUE, 'intérieur 2,43 m', V3(0,0.10,0), V3(0,0,0.06));
+dimLine(V3(-2.60,0.02,0.62), V3(-2.60,0.02,PU.z1), BLUE, '2,18 m', V3(0.25,0.10,0), V3(0.06,0,0));
+hoodLabels.push(label('Hotte plafond', DARK, V3(HOB_U.x+0.6, 2.30, HOB_U.z), 0.8));
 
 // =====================================================================
 // Modes, vues, interface
