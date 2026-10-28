@@ -59,11 +59,12 @@
       </ul>
       <h4>Mur est – <span class="r">2,56 m</span></h4>
       <ul><li>Angle + tiroirs 72 cm, colonne four + micro-ondes 60, colonne frigo 60</li></ul>
-      <h4>Péninsule 2,80 × 0,97 m (bout ouest, ≈ 19 cm de la baie vitrée)</h4>
+      <h4>Péninsule 2,56 × 0,97 m (bout ouest, ≈ 19 cm de la baie vitrée)</h4>
       <ul>
         <li>Plaque induction 4 foyers + hotte plafond, tiroirs/casseroliers côté cuisine</li>
         <li>Débord 33 cm + 3 tabourets côté pièce de vie / salon</li>
-        <li><span class="bl">Espace central</span> : 2,43 m (péninsule ↔ mur est) × 2,18 m (mur nord ↔ bout de péninsule), U ouvert au sud</li>
+        <li><span class="bl">Espace central</span> : 2,43 m (péninsule ↔ mur est) × 1,94 m (plan nord ↔ bout de péninsule), U ouvert au sud</li>
+        <li><span class="bl">Passage au sud</span> : 1,62 m entre le bout de péninsule et le bloc cellier/WC (contre 1,38 m avant)</li>
       </ul>
     </div>
     <h4>Cotes standard</h4>
@@ -85,7 +86,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-// version: cuisine3d-v4-U-baie-sans-table
+// version: cuisine3d-v5-U-peninsule-256
 // Repère : x = est (0 = face intérieure du mur est, négatif vers l'ouest)
 //          z = sud (0 = face intérieure du mur nord), y = hauteur. Mètres.
 const canvas = document.getElementById('c');
@@ -384,11 +385,11 @@ hobAt(HOB_L.x, HOB_L.z, true); hoodAt(HOB_L.x, HOB_L.z, true);
 for (const x of [-3.15, -2.65, -2.15]) stool(x, 2.86);
 
 // =====================================================================
-// MODE U : nord 2,95 m + est 2,56 m + péninsule nord-sud 2,80 m (ouverte au sud)
+// MODE U : nord 2,95 m + est 2,56 m + péninsule nord-sud 2,56 m (ouverte au sud)
 // =====================================================================
 const gU = new THREE.Group(); scene.add(gU); CUR = gU;
 // péninsule à l'extrémité ouest : débord jusqu'à x = -4.00 (≈ 19 cm de la baie)
-const PU = {x0:-4.00, xb:-3.67, xf:-3.03, z1:2.80};   // débord ouest, dos, façade est, bout sud
+const PU = {x0:-4.00, xb:-3.67, xf:-3.03, z1:2.56};   // débord ouest, dos, façade est, bout sud
 B(PU.x0, 0, TOPY0, TOPY1, 0, 0.62, M.top);                         // plan nord 4,00 m
 B(PU.xb, 0, PL, TOPY0, 0, NF-0.02, M.carcass);
 B(PU.xb+0.02, 0, 0, PL, 0, NF-0.08, M.plinth);
@@ -413,7 +414,7 @@ frontXe(1.22, 2.02, PL, 0.48, PU.xf); frontXe(1.22, 2.02, 0.48, TOPY0, PU.xf);
 for (const [a,b] of drawers3) frontXe(2.02, PU.z1-0.02, a, b, PU.xf);
 const HOB_U = {x:(PU.xb+PU.xf)/2, z:1.62};
 hobAt(HOB_U.x, HOB_U.z, false); hoodAt(HOB_U.x, HOB_U.z, false);
-for (const z of [1.40, 1.95, 2.50]) stool(-4.21, z);
+for (const z of [1.40, 1.89, 2.38]) stool(-4.21, z);
 CUR = scene;
 
 // =====================================================================
@@ -479,10 +480,11 @@ hoodLabels.push(label('Hotte plafond', DARK, V3(HOB_L.x, 2.30, HOB_L.z-0.45), 0.
 // mode U
 DIM = dimsU;
 dimLine(V3(PU.x0,1.15,0.35), V3(0,1.15,0.35), BLUE, 'linéaire nord 4,00 m', V3(-1.4,0.42,0));
-dimLine(V3(-4.45,0.97,0), V3(-4.45,0.97,PU.z1), BLUE, 'péninsule 2,80 m', V3(-0.25,0.12,0), V3(0.05,0,0));
-dimLine(V3(PU.x0,0.97,3.0), V3(PU.xf,0.97,3.0), BLUE, '0,97 m', V3(0,0.10,0.1), V3(0,0,0.05));
+dimLine(V3(-4.45,0.97,0), V3(-4.45,0.97,PU.z1), BLUE, 'péninsule 2,56 m', V3(-0.25,0.12,0), V3(0.05,0,0));
+dimLine(V3(PU.x0,0.97,2.76), V3(PU.xf,0.97,2.76), BLUE, '0,97 m', V3(0,0.10,0.1), V3(0,0,0.05));
 dimLine(V3(PU.xf,0.02,1.00), V3(EF,0.02,1.00), BLUE, 'intérieur 2,43 m', V3(0,0.10,0), V3(0,0,0.06));
-dimLine(V3(-2.60,0.02,0.62), V3(-2.60,0.02,PU.z1), BLUE, '2,18 m', V3(0.25,0.10,0), V3(0.06,0,0));
+dimLine(V3(-2.60,0.02,0.62), V3(-2.60,0.02,PU.z1), BLUE, '1,94 m', V3(0.25,0.10,0), V3(0.06,0,0));
+dimLine(V3(-3.35,0.02,PU.z1), V3(-3.35,0.02,CB[2]), BLUE, 'passage 1,62 m', V3(0.35,0.10,0), V3(0.06,0,0));
 hoodLabels.push(label('Hotte plafond', DARK, V3(HOB_U.x+0.6, 2.30, HOB_U.z), 0.8));
 
 // =====================================================================
