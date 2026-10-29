@@ -11,6 +11,10 @@
   #ui{position:fixed;left:0;right:0;bottom:0;padding:8px 8px calc(8px + env(safe-area-inset-bottom));display:flex;gap:6px;flex-wrap:wrap;justify-content:center;pointer-events:none}
   #ui button{pointer-events:auto;border:0;border-radius:18px;padding:9px 13px;font-size:14px;background:rgba(255,255,255,.92);box-shadow:0 1px 4px rgba(0,0,0,.2);color:#222}
   #ui button.on{background:#2b2f36;color:#fff}
+  #ui .sep{flex-basis:100%;height:0}
+  #ui button#bUp{background:#e8eef4}
+  #ui button#bUp.on{background:#5b6b7c;color:#fff}
+  @media (max-width:500px){ #ui{gap:5px;padding-left:6px;padding-right:6px} #ui button{padding:8px 10px;font-size:13px} }
   #ui button#bMode{background:#b5732e;color:#fff;font-weight:600}
   #legend{position:fixed;top:calc(8px + env(safe-area-inset-top));left:8px;max-width:min(340px,calc(100% - 16px));background:rgba(255,255,255,.93);border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,.18);font-size:12px;line-height:1.35}
   #legend summary{cursor:pointer;padding:8px 12px;font-weight:600;font-size:13px}
@@ -83,6 +87,23 @@
         <li><span class="bl">Passage au sud</span> : 1,62 m entre le bout de péninsule et le bloc cellier/WC (contre 1,38 m avant)</li>
       </ul>
     </div>
+    <div id="legM" style="display:none">
+      <h4>Maison R+1 + aile chambre + garage (cotes des plans)</h4>
+      <ul>
+        <li>Bloc principal 7,95 × 7,60 m hors tout, murs 0,36 m (0,20 + doublage 0,16), cloisons 7 cm</li>
+        <li>Aile chambre 3,69 × 6,60 m ; garage 3,21 × 6,42 m (int. 3,01 × 6,02 = 18,13 m²) ; porche 3,19 m²</li>
+        <li>Hauteurs : plafond RDC 2,50 · plancher étage 3,07 · plafond étage 5,57 · faîtage ≈ 8,97 m</li>
+        <li>Toitures 2 pans 35°, débords 0,50 m, tuiles plates teinte ardoise</li>
+        <li>Surface habitable ≈ 106,7 m² · emprise ≈ 133 m²</li>
+      </ul>
+      <h4>Terrain</h4>
+      <ul>
+        <li>Parcelle ≈ 580 m² (20,26 × 28,33 × 20,08 × 29,81 m), accès par la voirie côté entrée</li>
+        <li>Stationnement non clos (sans portail), allée, terrasse 29,63 m², 2 arbres prévus au plan</li>
+        <li>Flèche N : vrai nord ; la façade de la fenêtre cuisine regarde l'ouest (jardin)</li>
+      </ul>
+      <p style="margin:2px 0 6px;color:#666">Vues : Terrain, Maison, RDC, Étage ; bouton « toit & étage » pour voir l'intérieur.</p>
+    </div>
     <h4>Cotes standard</h4>
     <ul>
       <li>Meubles bas prof. 60 cm, plan de travail 4 cm, hauteur 90 cm</li>
@@ -96,6 +117,13 @@
   <div class="pb" id="palBody"></div>
 </div>
 <div id="ui">
+  <button data-v="terrain">🏡 Terrain</button>
+  <button data-v="maison">Maison</button>
+  <button data-v="rdc">RDC</button>
+  <button data-v="etage">Étage</button>
+  <button data-v="ensemble">Cuisine</button>
+  <button id="bUp" style="display:none">Masquer toit & étage</button>
+  <span class="sep"></span>
   <button id="bPal">🎨 Couleurs</button>
   <button id="bMode">Plan en L + îlot</button>
   <button data-v="ensemble" class="on">Vue d'ensemble</button>
@@ -108,7 +136,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-// version: cuisine3d-v7-nuancier
+// version: cuisine3d-v8-maison
 // Repère : x = est (0 = face intérieure du mur est, négatif vers l'ouest)
 //          z = sud (0 = face intérieure du mur nord), y = hauteur. Mètres.
 const canvas = document.getElementById('c');
@@ -318,13 +346,15 @@ const BAIE = [-7.19, -4.19], FEN = [-2.60, -1.20];
 const DOOR = [2.60, 3.33];             // porte P73 vers le garage
 const ENTREE = [-2.30, -1.40];         // porte d'entrée 90 (mur sud)
 
+// ---------- Contexte « cuisine » (sol, murs simplifiés) : masqué dans les vues maison ----------
+const CTX = new THREE.Group(); scene.add(CTX); CUR = CTX;
 // ---------- Sol ----------
 const floorGeo = new THREE.PlaneGeometry(-XW, ZS);
 floorGeo.attributes.uv.array.forEach((v,i,a)=>{ a[i] = v * ((i%2===0) ? (-XW)/1.2 : ZS/1.2); });
 const floor = new THREE.Mesh(floorGeo, M.floor);
-floor.rotation.x = -Math.PI/2; floor.position.set(XW/2, 0, ZS/2); floor.receiveShadow = true; scene.add(floor);
+floor.rotation.x = -Math.PI/2; floor.position.set(XW/2, 0, ZS/2); floor.receiveShadow = true; CTX.add(floor);
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(40,40), new THREE.MeshStandardMaterial({color:0xd5dade, roughness:1}));
-ground.rotation.x = -Math.PI/2; ground.position.set(-3, -0.005, 3); ground.receiveShadow = true; scene.add(ground);
+ground.rotation.x = -Math.PI/2; ground.position.set(-3, -0.005, 3); ground.receiveShadow = true; CTX.add(ground);
 
 // ---------- Murs ----------
 function wallBox(x0,x1,y0,y1,z0,z1){ const m = B(x0,x1,y0,y1,z0,z1, M.wall.clone()); walls.push(m); return m; }
@@ -362,6 +392,7 @@ function windowAt(x0,x1,y0,y1){
 windowAt(FEN[0], FEN[1], 1.20, 2.15);
 windowAt(BAIE[0], BAIE[1], 0.0, 2.15);
 B(-0.04, 0.0, 0, 2.04, DOOR[0]-0.02, DOOR[0], M.frame); B(-0.04,0.0,0,2.04,DOOR[1],DOOR[1]+0.02,M.frame);
+CUR = scene;
 
 // ---------- Façades & poignées (inox brossé) ----------
 const HM = M.inox.clone();   // poignées (inox sur noir, noir mat sur blanc)
@@ -538,6 +569,7 @@ CUR = scene;
 // =====================================================================
 // CONTEXTE : escalier (haut côté cuisine)
 // =====================================================================
+CUR = CTX;
 const SX0 = -1.00, SZ0 = 3.35, NST = 15, TR = 0.25, RI = 0.18;
 for (let i=0;i<NST;i++){            // i = 0 : marche la plus haute (côté cuisine)
   const z = SZ0 + TR*i, h = RI*(NST-i);
@@ -549,7 +581,8 @@ walls.push(B(SX0-0.07, 0, 0, RI*NST, SZ0-0.07, SZ0, M.wall.clone())); // face ha
 // main courante inclinée
 { const a = V3(SX0-0.035, RI*NST+0.9, SZ0), b = V3(SX0-0.035, RI+0.9, SZ0+TR*NST);
   const len = a.distanceTo(b), m = new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,len,12), M.black);
-  m.position.copy(a).add(b).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(V3(0,1,0), b.clone().sub(a).normalize()); scene.add(m); }
+  m.position.copy(a).add(b).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(V3(0,1,0), b.clone().sub(a).normalize()); CTX.add(m); }
+CUR = scene;
 function V3(x,y,z){ return new THREE.Vector3(x,y,z); }
 // =====================================================================
 // COTES
@@ -606,6 +639,209 @@ dimLine(V3(-3.35,0.02,PU.z1), V3(-3.35,0.02,CB[2]), BLUE, 'passage 1,62 m', V3(0
 hoodLabels.push(label('Hotte plafond', DARK, V3(HOB_U.x+0.6, 2.30, HOB_U.z), 0.8));
 
 // =====================================================================
+// MAISON COMPLÈTE + TERRAIN (géométrie des plans : RDC, étage, coupes, façades, plan de masse)
+// Même repère que la cuisine. Murs extérieurs 0,36 (0,20 maçonnerie + 0,16 doublage), cloisons 0,07.
+// Vrai nord : l'axe +x pointe ≈ 19° à l'est du nord… cf. NORD_DEG (le « mur nord » de la cuisine
+// est en réalité la façade ouest, côté jardin).
+// =====================================================================
+const NORD_DEG = 19;
+const HOUSE = new THREE.Group(); HOUSE.visible = false; scene.add(HOUSE);
+const HG = {rdc:new THREE.Group(), et:new THREE.Group(), roof:new THREE.Group(), low:new THREE.Group(), site:new THREE.Group(),
+  lbR:new THREE.Group(), lbE:new THREE.Group(), lbS:new THREE.Group()};
+Object.values(HG).forEach(g=>HOUSE.add(g));
+const std = (color, r=0.95, o={}) => new THREE.MeshStandardMaterial(Object.assign({color, roughness:r}, o));
+const HMat = {
+  ext:std(0xece5d8), int:std(0xf6f4f0), roof:std(0x53565c,0.85), pvc:std(0xf4f4f2,0.5), door:std(0x5b5f65,0.6),
+  wood:std(0xd8bf99,0.75), garF:std(0xa9a8a3), terr:std(0xc9bfb0,0.9), allee:std(0xd8cbb1,1), park:std(0xc5c0b5,1),
+  grass:std(0x93b066,1), out:std(0xd2d7cb,1), road:std(0x7e8186,0.95), limit:std(0xc0392b,0.8),
+  trunk:std(0x6b5039,0.9), leaf:std(0x6e9a4c,0.9,{flatShading:true}), arrow:std(0x2b2f36,0.6),
+};
+const HWALLMATS = [HMat.ext, HMat.int];
+function hb(x0,x1,y0,y1,z0,z1,mat,par,cast=true){
+  if (x1-x0<1e-3||y1-y0<1e-3||z1-z0<1e-3) return null;
+  const m = new THREE.Mesh(new THREE.BoxGeometry(x1-x0,y1-y0,z1-z0), mat);
+  m.position.set((x0+x1)/2,(y0+y1)/2,(z0+z1)/2); m.castShadow=cast; m.receiveShadow=true; par.add(m); return m; }
+// mur droit : ax='x' → mur parallèle à x (épaisseur en z = [t0,t1]) ; ax='z' → parallèle à z (épaisseur en x)
+// ouvertures o = [a0, a1, y0, y1, type]  (type : f fenêtre, pf porte-fenêtre, porte, service, garage, open)
+function wallH(ax,a0,a1,t0,t1,ya,yb,ops,mat,par){
+  const box=(p0,p1,q0,q1)=> ax==='x' ? hb(p0,p1,q0,q1,t0,t1,mat,par) : hb(t0,t1,q0,q1,p0,p1,mat,par);
+  const os=(ops||[]).filter(o=>o[1]>a0&&o[0]<a1&&o[3]>ya&&o[2]<yb).sort((p,q)=>p[0]-q[0]);
+  let a=a0;
+  for (const o of os){ const oa=Math.max(o[0],a0), ob=Math.min(o[1],a1);
+    if (oa>a) box(a,oa,ya,yb);
+    if (o[2]>ya) box(oa,ob,ya,o[2]);
+    if (o[3]<yb) box(oa,ob,o[3],yb);
+    a=Math.max(a,ob); }
+  if (a<a1) box(a,a1,ya,yb);
+}
+function joinery(ax,a0,a1,t0,t1,y0,y1,type,par){
+  if (type==='open') return;
+  const tm=(t0+t1)/2, f=0.06, d=0.07;
+  const box=(p0,p1,q0,q1,s0,s1,mat,cast=true)=> ax==='x' ? hb(p0,p1,q0,q1,s0,s1,mat,par,cast) : hb(s0,s1,q0,q1,p0,p1,mat,par,cast);
+  if (type==='porte'||type==='service'||type==='garage'){
+    const mat = type==='porte' ? HMat.door : HMat.pvc;
+    box(a0,a1,y0,y1,tm-0.025,tm+0.025,mat);
+    if (type==='garage') for (let y=y0+0.4;y<y1-0.1;y+=0.4) box(a0+0.05,a1-0.05,y-0.008,y+0.008,tm+0.025,tm+0.035,HMat.door,false);
+    return; }
+  box(a0,a1,y0,y0+f,tm-d/2,tm+d/2,HMat.pvc); box(a0,a1,y1-f,y1,tm-d/2,tm+d/2,HMat.pvc);
+  box(a0,a0+f,y0,y1,tm-d/2,tm+d/2,HMat.pvc); box(a1-f,a1,y0,y1,tm-d/2,tm+d/2,HMat.pvc);
+  if (a1-a0>0.9){ const m=(a0+a1)/2; box(m-0.03,m+0.03,y0,y1,tm-d/2,tm+d/2,HMat.pvc); }
+  if (a1-a0>2.2){ for (const m of [a0+(a1-a0)/3, a0+2*(a1-a0)/3]) box(m-0.03,m+0.03,y0,y1,tm-d/2,tm+d/2,HMat.pvc); }
+  box(a0+f,a1-f,y0+f,y1-f,tm-0.004,tm+0.004,M.glass,false);
+}
+// mur + menuiseries, ventilé RDC / étage
+function extWall(ax,a0,a1,t0,t1,ops,ySplit,yTop,parLow,parHigh,yBot=-0.20,mat=HMat.ext){
+  wallH(ax,a0,a1,t0,t1,yBot,ySplit,ops,mat,parLow);
+  if (parHigh) wallH(ax,a0,a1,t0,t1,ySplit,yTop,ops,mat,parHigh);
+  for (const o of ops||[]) joinery(ax,o[0],o[1],t0,t1,o[2],o[3],o[4], o[2]>=ySplit-0.01 ? parHigh : parLow);
+}
+function hPlane(x0,x1,z0,z1,y,mat,par,tile=0){
+  const g = new THREE.PlaneGeometry(x1-x0, z1-z0);
+  if (tile) g.attributes.uv.array.forEach((v,i,a)=>{ a[i] = v * ((i%2===0) ? (x1-x0)/tile : (z1-z0)/tile); });
+  const m = new THREE.Mesh(g, mat); m.rotation.x=-Math.PI/2; m.position.set((x0+x1)/2, y, (z0+z1)/2); m.receiveShadow=true; par.add(m); return m; }
+function flatPoly(pts,y,mat,par){       // pts = [[x,z],…] posé à plat à la hauteur y
+  const s = new THREE.Shape(pts.map(p=>new THREE.Vector2(p[0], -p[1])));
+  const m = new THREE.Mesh(new THREE.ShapeGeometry(s), mat); m.rotation.x=-Math.PI/2; m.position.y=y; m.receiveShadow=true; par.add(m); return m; }
+function prismY(pts,y0,y1,mat,par){     // prisme vertical de section pts [[x,z],…]
+  const s = new THREE.Shape(pts.map(p=>new THREE.Vector2(p[0], -p[1])));
+  const g = new THREE.ExtrudeGeometry(s, {depth:y1-y0, bevelEnabled:false}); g.rotateX(-Math.PI/2); g.translate(0,y0,0);
+  const m = new THREE.Mesh(g, mat); m.castShadow=true; m.receiveShadow=true; par.add(m); return m; }
+function prismX(pts,x0,x1,mat,par){     // prisme horizontal (pignon) de section pts [[z,y],…] entre x0 et x1
+  const s = new THREE.Shape(pts.map(p=>new THREE.Vector2(p[0], p[1])));
+  const g = new THREE.ExtrudeGeometry(s, {depth:x1-x0, bevelEnabled:false}); g.rotateY(-Math.PI/2); g.translate(x1,0,0);
+  const m = new THREE.Mesh(g, mat); m.castShadow=true; m.receiveShadow=true; par.add(m); return m; }
+
+// ---------- niveaux (coupes) ----------
+const YG = -0.20;                 // terrain naturel (≈ -0,16 à -0,27 sous le ±0,00 selon les façades) : retenu -0,20
+const YC1 = 2.50, YF = 3.07, YC2 = 5.57, YA = 5.72, YAL = 2.65;   // plafond RDC, plancher étage, plafond étage, arases
+const A35 = 35*Math.PI/180, T35 = Math.tan(A35), RT = 0.20, RTV = RT/Math.cos(A35);
+const ROOF_MAIN = {zr:3.44, yr:8.97, x0:-8.09, x1:0.86, z0:-0.86, z1:7.74};   // 2 pans 35°, débords 0,50
+const ROOF_WING = {zr:5.58, yr:5.58, x0:-11.58, x1:-7.39, z0:1.78, z1:9.38};  // aile chambre RDC
+const ROOF_GAR  = {zr:4.85, yr:5.28, x0:0.36, x1:3.57, z0:1.14, z1:8.56};     // garage (faîtage estimé)
+const under = (R,z)=>R.yr-Math.abs(z-R.zr)*T35-RTV;
+function roofSide(R,za,zb,xa,xb,par){   // pan de toiture entre za et zb (d'un seul côté du faîtage)
+  const zc=(za+zb)/2, s=Math.sign(zc-R.zr), L=Math.abs(zb-za)/Math.cos(A35);
+  const yt=R.yr-Math.abs(zc-R.zr)*T35;
+  const m=new THREE.Mesh(new THREE.BoxGeometry(xb-xa, RT, L), HMat.roof);
+  m.rotation.x = s*A35; m.position.set((xa+xb)/2, yt-Math.cos(A35)*RT/2, zc - s*Math.sin(A35)*RT/2);
+  m.castShadow=true; m.receiveShadow=true; par.add(m); return m; }
+function gableRoof(R,par,ridge=true){
+  roofSide(R,R.z0,R.zr,R.x0,R.x1,par); roofSide(R,R.zr,R.z1,R.x0,R.x1,par);
+  if (ridge) hb(R.x0,R.x1,R.yr-0.06,R.yr+0.05,R.zr-0.11,R.zr+0.11,HMat.roof,par);
+}
+function pignon(R,xa,xb,za,zb,yb,par){
+  prismX([[za,yb],[zb,yb],[zb,under(R,zb)],[R.zr,under(R,R.zr)],[za,under(R,za)]],xa,xb,HMat.ext,par); }
+
+// ---------- bloc principal R+1 (nu ext. x -7,59…0,36 ; z -0,36…7,24) ----------
+const HX0=-7.59, HX1=0.36, HZ0=-0.36, HZ1=7.24, IX0=-7.23, IZ1=6.88;
+const opsO = [[-7.09,-4.09,0,2.15,'pf'],[-2.48,-1.08,1.20,2.15,'f'],[-5.82,-4.62,3.97,5.22,'f'],[-2.09,-1.49,4.27,5.22,'f']];
+const opsE = [[-5.86,-4.66,0.90,2.15,'f'],[-3.17,-2.57,1.20,2.15,'f'],[-2.11,-1.21,0,2.15,'porte'],[-5.91,-4.71,3.97,5.22,'f'],[-2.28,-1.08,3.97,5.22,'f']];
+extWall('x',HX0,HX1,HZ0,0,opsO,YC1,YA,HG.rdc,HG.et);
+extWall('x',HX0,HX1,IZ1,HZ1,opsE,YC1,YA,HG.rdc,HG.et);
+extWall('z',0,IZ1,HX0,IX0,[[0.14,1.94,0,2.15,'pf'],[2.73,3.52,0,2.04,'open']],YC1,YA,HG.rdc,HG.et);
+extWall('z',0,IZ1,0,HX1,[[2.70,3.48,0,2.04,'open']],YC1,YA,HG.rdc,HG.et);
+hb(HX0,HX1,YA,under(ROOF_MAIN,HZ0),HZ0,0,HMat.ext,HG.roof); hb(HX0,HX1,YA,under(ROOF_MAIN,HZ1),IZ1,HZ1,HMat.ext,HG.roof);
+pignon(ROOF_MAIN,HX0,IX0,HZ0,HZ1,YA,HG.roof); pignon(ROOF_MAIN,0,HX1,HZ0,HZ1,YA,HG.roof);
+gableRoof(ROOF_MAIN,HG.roof);
+
+// ---------- aile chambre RDC (nu ext. x -11,08…-7,39 ; z 2,28…8,88) ----------
+extWall('x',-11.08,-7.59,2.28,2.64,[[-9.12,-8.32,0,2.15,'pf']],YAL,YAL,HG.rdc,null);
+extWall('x',-11.08,-7.39,8.52,8.88,[[-9.61,-9.01,1.20,2.15,'f']],YAL,YAL,HG.rdc,null);
+extWall('z',2.64,8.52,-11.08,-10.72,[],YAL,YAL,HG.rdc,null);
+extWall('z',7.24,8.52,-7.59,-7.39,[],YAL,YAL,HG.rdc,null);
+wallH('z',2.64,8.52,-7.75,-7.59,0,YC1,[[2.73,3.52,0,2.04,'open']],HMat.int,HG.rdc);       // doublage côté chambre
+hb(-11.08,-7.59,YAL,under(ROOF_WING,2.28),2.28,2.64,HMat.ext,HG.low); hb(-11.08,-7.39,YAL,under(ROOF_WING,8.88),8.52,8.88,HMat.ext,HG.low);
+pignon(ROOF_WING,-11.08,-10.72,2.28,8.88,YAL,HG.low);
+gableRoof(ROOF_WING,HG.low);
+
+// ---------- garage (nu ext. x 0,36…3,57 ; z 1,64…8,06 ; sol -0,16 ; murs 0,20) ----------
+const YGA=-0.16;
+extWall('x',0.36,3.57,1.64,1.84,[[2.48,3.27,YGA,YGA+2.00,'service']],YAL,YAL,HG.rdc,null);
+extWall('x',0.16,3.57,7.86,8.06,[[0.77,3.17,YGA,YGA+2.00,'garage']],YAL,YAL,HG.rdc,null);
+extWall('z',1.84,7.86,3.37,3.57,[],YAL,YAL,HG.rdc,null);
+extWall('z',7.24,7.86,0.16,0.36,[],YAL,YAL,HG.rdc,null);
+hb(0.36,3.57,YAL,under(ROOF_GAR,1.64),1.64,1.84,HMat.ext,HG.low); hb(0.16,3.57,YAL,under(ROOF_GAR,8.06),7.86,8.06,HMat.ext,HG.low);
+pignon(ROOF_GAR,3.37,3.57,1.64,8.06,YAL,HG.low);
+roofSide(ROOF_GAR,ROOF_GAR.z0,ROOF_GAR.zr,0.36,3.57,HG.low); roofSide(ROOF_GAR,ROOF_GAR.zr,ROOF_GAR.z1,0.36,3.57,HG.low);
+hb(0.36,3.57,ROOF_GAR.yr-0.06,ROOF_GAR.yr+0.05,ROOF_GAR.zr-0.11,ROOF_GAR.zr+0.11,HMat.roof,HG.low);
+// porche d'entrée : prolongement du pan est du garage + poteau
+roofSide(ROOF_GAR,7.24,8.57,-4.21,0.36,HG.low);
+hb(-3.71,-3.52,-0.02,under(ROOF_GAR,7.96),7.86,8.06,HMat.ext,HG.rdc);
+
+// ---------- cloisons RDC ----------
+const CI = HMat.int;
+hb(-3.78,-3.71,0,YC1,3.97,IZ1,CI,HG.rdc); hb(-3.78,-2.24,0,YC1,3.97,4.04,CI,HG.rdc); hb(-3.71,-2.31,0,YC1,5.94,6.01,CI,HG.rdc);
+wallH('z',3.97,IZ1,-2.31,-2.24,0,YC1,[[4.47,5.30,0,2.04,'open'],[6.08,6.81,0,2.04,'open']],CI,HG.rdc);
+hb(-0.74,0,0,YC1,2.58,2.65,CI,HG.rdc);                                     // fin du linéaire est de la cuisine
+wallH('x',-10.72,-7.75,5.68,5.75,0,YC1,[[-9.62,-8.77,0,2.04,'open']],CI,HG.rdc);
+wallH('x',-10.72,-7.75,7.25,7.32,0,YC1,[[-9.85,-9.10,0,2.04,'open']],CI,HG.rdc);
+// sols RDC
+hPlane(IX0,0,0,IZ1,0,M.floor,HG.rdc,1.2);
+hPlane(-10.72,-7.75,2.64,8.52,0,HMat.wood,HG.rdc);
+hPlane(0.36,3.37,1.84,7.86,YGA,HMat.garF,HG.rdc);
+
+// ---------- escalier 2 quarts tournants, 17 hauteurs (haut côté cuisine) ----------
+{ const R=YF/17, W=-0.90, st=[
+  [[-0.90,6.88],[-0.564,6.88],[-0.90,5.977]],
+  [[-0.564,6.88],[0,6.88],[0,6.835],[-0.90,5.90],[-0.90,5.977]],
+  [[0,6.835],[0,6.241],[-0.90,5.837],[-0.90,5.90]],
+  [[0,6.241],[0,5.78],[-0.90,5.78],[-0.90,5.837]]];
+  const zs=[5.78,5.52,5.27,5.01,4.755,4.50,4.24,3.985,3.73];
+  for (let i=0;i<8;i++) st.push([[0,zs[i]],[0,zs[i+1]],[W,zs[i+1]],[W,zs[i]]]);
+  st.push([[0,3.73],[0,3.30],[W,3.645],[W,3.73]]);
+  st.push([[0,3.30],[0,2.841],[W,3.554],[W,3.645]]);
+  st.push([[0,2.841],[0,2.48],[-0.254,2.48],[W,3.408],[W,3.554]]);
+  st.push([[-0.254,2.48],[-0.72,2.48],[W,3.04],[W,3.408]]);
+  st.push([[-0.72,2.48],[W,2.48],[W,3.04]]);
+  st.forEach((p,i)=>prismY(p,i*R,(i+1)*R,M.stair,HG.rdc));
+  const a=V3(W+0.03,4*R+0.9,5.78), b=V3(W+0.03,12*R+0.9,3.73), len=a.distanceTo(b);
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,len,10),M.black);
+  m.position.copy(a).add(b).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(V3(0,1,0), b.clone().sub(a).normalize()); HG.rdc.add(m); }
+
+// ---------- étage : plancher (trémie au-dessus de l'escalier) et cloisons ----------
+hb(IX0,-0.90,YC1,YF,0,IZ1,HMat.wood,HG.et); hb(-0.90,0,YC1,YF,0,2.48,HMat.wood,HG.et);
+const YD = YF+2.04;
+wallH('x',IX0,-0.97,3.38,3.45,YF,YC2,[[-4.45,-3.72,YF,YD,'open'],[-3.52,-2.79,YF,YD,'open']],CI,HG.et);
+hb(-3.68,-3.61,YF,YC2,3.45,IZ1,CI,HG.et); hb(-0.97,-0.90,YF,YC2,3.45,IZ1,CI,HG.et);
+wallH('z',0,3.38,-4.56,-4.49,YF,YC2,[[2.54,3.27,YF,YD,'open']],CI,HG.et);
+hb(-2.84,-2.77,YF,YC2,0,2.41,CI,HG.et);
+wallH('x',-4.49,0,2.41,2.48,YF,YC2,[[-4.05,-3.27,YF,YD,'open'],[-1.96,-1.18,YF,YD,'open']],CI,HG.et);
+
+// ---------- terrain : parcelle ≈ 580 m², accès par la voirie à l'est ----------
+const PA=[-16.37,-13.42], PB=[3.63,-10.15], PC=[3.63,18.18], PD=[-16.37,16.39];
+hPlane(-75,65,-70,70,YG-0.012,HMat.out,HG.site);
+flatPoly([PA,PB,PC,PD],YG,HMat.grass,HG.site);
+{ const u=[PC[0]-PD[0],PC[1]-PD[1]], L=Math.hypot(...u); u[0]/=L; u[1]/=L; const n=[-u[1],u[0]], e=10, w=6;
+  const p1=[PD[0]-e*u[0],PD[1]-e*u[1]], p2=[PC[0]+e*u[0],PC[1]+e*u[1]];
+  flatPoly([p1,p2,[p2[0]+w*n[0],p2[1]+w*n[1]],[p1[0]+w*n[0],p1[1]+w*n[1]]],YG-0.006,HMat.road,HG.site); }
+for (const [p,q] of [[PA,PB],[PB,PC],[PC,PD],[PD,PA]]){      // limites de propriété
+  const dx=q[0]-p[0], dz=q[1]-p[1], L=Math.hypot(dx,dz), m=new THREE.Mesh(new THREE.BoxGeometry(L,0.05,0.07),HMat.limit);
+  m.position.set((p[0]+q[0])/2,YG+0.025,(p[1]+q[1])/2); m.rotation.y=-Math.atan2(dz,dx); HG.site.add(m); }
+hb(-11.08,-4.04,YG,-0.03,-3.26,2.28,HMat.terr,HG.site);           // terrasse 29,63 m²
+hb(-3.71,0.16,YG,-0.02,7.24,8.06,HMat.terr,HG.site);              // seuil du porche
+hb(-3.71,3.63,YG,YG+0.03,8.06,12.74,HMat.allee,HG.site);          // allée / aire devant garage
+flatPoly([[-1.37,12.73],[3.63,12.73],[3.63,18.18],[-1.37,17.73]],YG+0.028,HMat.park,HG.site);  // stationnement non clos
+for (const [x,z] of [[0.38,-6.63],[-1.08,-7.43]]){                // 2 arbres figurant au plan de masse (à planter)
+  cyl(0.12,2.2,x,YG+1.1,z,HMat.trunk,HG.site,8);
+  const c=new THREE.Mesh(new THREE.IcosahedronGeometry(1.45,1),HMat.leaf); c.position.set(x,YG+3.2,z); c.castShadow=true; HG.site.add(c); }
+{ const s=new THREE.Shape(); s.moveTo(0,1.4); s.lineTo(0.55,-0.5); s.lineTo(0,-0.15); s.lineTo(-0.55,-0.5); s.closePath();
+  const m=new THREE.Mesh(new THREE.ShapeGeometry(s),HMat.arrow); m.geometry.rotateX(-Math.PI/2); m.rotation.y=-(90-NORD_DEG)*Math.PI/180; m.position.set(7.0,YG+0.02,-9.0); HG.site.add(m); }
+
+// ---------- étiquettes (noms génériques + surfaces) ----------
+DIM = HG.lbR;
+for (const [t,x,z,y] of [['Séjour / cuisine · 42,05 m²',-5.4,4.3,1.0],['Cellier 2,54 m²',-3.0,4.95,1.0],['WC 1,22 m²',-3.0,6.45,1.0],
+  ['Chambre RDC 9,00 m²',-9.2,4.1,1.0],['Dressing 4,44 m²',-9.2,6.5,1.0],['Salle d\'eau 3,54 m²',-9.2,7.9,1.0],['Garage 18,13 m²',1.9,4.8,1.0],
+  ['Porche 3,19 m²',-1.8,7.65,0.6],['Terrasse 29,63 m²',-9.3,-1.0,0.3],['Escalier ↑ (17 marches)',-0.45,5.3,1.6]]) label(t,DARK,V3(x,y,z),0.62);
+DIM = HG.lbE;
+for (const [t,x,z] of [['Chambre 1 · 9,02 m²',-5.9,1.9],['Dressing 3,97 m²',-3.66,0.6],['Salle de bains 6,67 m²',-1.4,1.5],['Dégagement 3,03 m²',-2.7,2.93],
+  ['Chambre 2 · 12,15 m²',-5.4,5.2],['Chambre 3 · 9,04 m²',-2.3,5.2],['Trémie escalier',-0.45,4.7]]) label(t,DARK,V3(x,YF+0.8,z),0.62);
+DIM = HG.lbS;
+for (const [t,x,z,s] of [['Parcelle ≈ 580 m²',-11.5,-9.5,0.9],['Terrasse',-9.3,-1.4,0.75],['Stationnement (non clos)',1.1,15.4,0.75],['Allée',-1.6,10.6,0.7],
+  ['Voirie · accès',-6.4,20.6,0.8],['29,81 m',-16.9,1.5,0.7],['28,33 m',4.2,4.0,0.7],['20,26 m',-6.4,-12.4,0.7],['20,08 m',-6.4,16.6,0.7],
+  ['N',7.0+1.9*Math.cos(NORD_DEG*Math.PI/180),-9.0-1.9*Math.sin(NORD_DEG*Math.PI/180),1.1]]) label(t,DARK,V3(x,0.4,z),s);
+DIM = dimsC;
+
+// =====================================================================
 // Modes, vues, interface
 // =====================================================================
 let MODE = 'L';
@@ -613,12 +849,42 @@ const VIEWS = {
   ensemble: {pos:V3(-7.2, 4.4, 5.6), tgt:V3(-1.8, 0.7, 1.7), fov:45},
   dessus:   {pos:V3(-2.3, 11.2, 3.41), tgt:V3(-2.3, 0, 3.4), fov:45},
   sejour:   {pos:V3(-6.6, 1.62, 3.6), tgt:V3(-1.6, 1.0, 1.3), fov:50},
+  terrain:  {pos:V3(13, 38, 29), tgt:V3(-5.6, 0, 4.2), fov:45, house:true, et:true, roof:true},
+  maison:   {pos:V3(10, 6.5, 20.5), tgt:V3(-4.0, 2.6, 3.6), fov:45, house:true, et:true, roof:true},
+  rdc:      {pos:V3(-2.2, 18, 13.5), tgt:V3(-3.9, 0, 3.9), fov:45, house:true, et:false, roof:false},
+  etage:    {pos:V3(-3.0, 19.5, 9.8), tgt:V3(-3.5, 2.6, 3.5), fov:45, house:true, et:true, roof:false},
 };
+const VUE_ALIAS = {cuisine:'ensemble', terrain:'terrain', maison:'maison', rdc:'rdc', etage:'etage', 'étage':'etage'};
+let HOUSEON = false, SHOW_ET = true, SHOW_ROOF = true, COTES = true;
+function legendUpdate(){
+  const t = document.getElementById('legTitle');
+  if (HOUSEON){ t.textContent = 'Maison & terrain (légende)'; legL.style.display = legU.style.display = 'none'; legM.style.display = ''; return; }
+  legM.style.display = 'none';
+  t.textContent = MODE==='L' ? 'Cuisine en L + îlot central (légende)' : 'Cuisine en U avec péninsule (légende)';
+  legL.style.display = MODE==='L' ? '' : 'none'; legU.style.display = MODE==='U' ? '' : 'none';
+}
+const legL = document.getElementById('legL'), legU = document.getElementById('legU'), legM = document.getElementById('legM');
+const bUp = document.getElementById('bUp');
+function applyVis(){
+  HOUSE.visible = HOUSEON; CTX.visible = !HOUSEON;
+  HG.et.visible = SHOW_ET; HG.low.visible = SHOW_ET; HG.roof.visible = SHOW_ET && SHOW_ROOF;
+  dims.visible = COTES && !HOUSEON;
+  HG.lbR.visible = COTES && !SHOW_ET; HG.lbE.visible = COTES && SHOW_ET && !SHOW_ROOF; HG.lbS.visible = COTES && SHOW_ET && SHOW_ROOF && curView==='terrain';
+  const all = SHOW_ET && SHOW_ROOF;
+  bUp.style.display = HOUSEON ? '' : 'none'; bUp.classList.toggle('on', !all);
+  bUp.textContent = all ? 'Masquer toit & étage' : 'Afficher toit & étage';
+  if (HOUSEON){ sun.position.set(-15.4, 23.4, 16); sun.target.position.set(-5, 0, 3);
+    Object.assign(sun.shadow.camera, {left:-19, right:19, top:19, bottom:-19, near:1, far:75}); controls.maxDistance = 85; }
+  else { sun.position.set(-6, 9, 8); sun.target.position.set(-2, 0, 3);
+    Object.assign(sun.shadow.camera, {left:-9, right:5, top:8, bottom:-6, near:1, far:32}); controls.maxDistance = 20; }
+  sun.shadow.camera.updateProjectionMatrix();
+  legendUpdate();
+}
 let curView = 'ensemble';
 function applyHoodLook(){
-  const top = curView==='dessus';
+  const top = curView==='dessus' || (HOUSEON && !SHOW_ET);
   for (const l of hoodLabels) l.visible = !top;
-  for (const o of hoods){ o.h.material.opacity = top?0.25:1; o.h.castShadow = !top; o.led.material.opacity = top?0.2:1; o.ceil.visible = !top; }
+  for (const o of hoods){ o.h.material.opacity = top?0.25:1; o.h.castShadow = !top; o.led.material.opacity = top?0.2:1; o.ceil.visible = !top && !HOUSEON; }
 }
 function setMode(m){
   MODE = m;
@@ -626,9 +892,7 @@ function setMode(m){
   gU.visible = dimsU.visible = (m==='U');
   const hob = m==='L' ? HOB_L : HOB_U; ptHood.position.set(hob.x, 2.15, hob.z);
   document.getElementById('bMode').textContent = m==='L' ? 'Plan en L + îlot ⇄ U' : 'Plan en U ⇄ L + îlot';
-  document.getElementById('legTitle').textContent = m==='L' ? 'Cuisine en L + îlot central (légende)' : 'Cuisine en U avec péninsule (légende)';
-  document.getElementById('legL').style.display = m==='L' ? '' : 'none';
-  document.getElementById('legU').style.display = m==='U' ? '' : 'none';
+  legendUpdate();
   const u = new URL(location.href); if (m==='U') u.searchParams.set('mode','u'); else u.searchParams.delete('mode');
   history.replaceState(null, '', u);
 }
@@ -636,12 +900,16 @@ let anim = null;
 function setView(name, instant=false){
   const v = VIEWS[name]; if (!v) return; curView = name;
   document.querySelectorAll('#ui button[data-v]').forEach(b=>b.classList.toggle('on', b.dataset.v===name));
-  applyHoodLook();
+  const wasHouse = HOUSEON; HOUSEON = !!v.house;
+  if (HOUSEON){ SHOW_ET = v.et; SHOW_ROOF = v.roof; if (!wasHouse) document.getElementById('legend').open = false; }
+  setParam('vue', HOUSEON ? name : null);
+  applyVis(); applyHoodLook();
   if (instant){ camera.position.copy(v.pos); controls.target.copy(v.tgt); camera.fov=v.fov; camera.updateProjectionMatrix(); controls.update(); return; }
   anim = {t0:performance.now(), p0:camera.position.clone(), t0v:controls.target.clone(), f0:camera.fov, v};
 }
 document.querySelectorAll('#ui button[data-v]').forEach(b=>b.addEventListener('click', ()=>setView(b.dataset.v)));
 document.getElementById('bMode').addEventListener('click', ()=>setMode(MODE==='L'?'U':'L'));
+bUp.addEventListener('click', ()=>{ const all = SHOW_ET && SHOW_ROOF; SHOW_ET = SHOW_ROOF = !all; applyVis(); applyHoodLook(); });
 // ---------- Nuancier : façades, plan de travail, sol, crédence ----------
 function setParam(k,v){ const u=new URL(location.href); if (v==null) u.searchParams.delete(k); else u.searchParams.set(k,v); history.replaceState(null,'',u); }
 const cache = {}; const memo=(k,f)=>cache[k]||(cache[k]=f());
@@ -775,10 +1043,11 @@ bPal.addEventListener('click', ()=>openPal(pal.hidden));
 document.getElementById('palX').addEventListener('click', ()=>openPal(false));
 window.addEventListener('resize', fitPal);
 const bC = document.getElementById('bCotes');
-bC.addEventListener('click', ()=>{ dims.visible = !dims.visible; bC.classList.toggle('on', dims.visible); });
+bC.addEventListener('click', ()=>{ COTES = !COTES; bC.classList.toggle('on', COTES); applyVis(); });
 const bM = document.getElementById('bMurs'); let transp = false;
 bM.addEventListener('click', ()=>{ transp = !transp; bM.classList.toggle('on', transp);
-  for (const w of walls){ w.material.transparent = transp; w.material.opacity = transp ? 0.25 : 1; w.material.depthWrite = !transp; w.castShadow = !transp; } });
+  for (const w of walls){ w.material.transparent = transp; w.material.opacity = transp ? 0.25 : 1; w.material.depthWrite = !transp; w.castShadow = !transp; }
+  for (const m of HWALLMATS){ m.transparent = transp; m.opacity = transp ? 0.3 : 1; m.depthWrite = !transp; m.needsUpdate = true; } });
 
 function resize(){
   const w = window.innerWidth, h = window.innerHeight;
@@ -796,7 +1065,8 @@ setPlan((params.get('plan')||'chene').toLowerCase());
 setSol((params.get('sol')||'actuel').toLowerCase());
 setCredence((params.get('credence')||'aucune').toLowerCase());
 if (params.get('palette')==='1') openPal(true);
-setView((location.hash||'#ensemble').slice(1), true);
+{ const vq = VUE_ALIAS[(params.get('vue')||'').toLowerCase()];
+  setView(vq || (location.hash||'#ensemble').slice(1), true); }
 
 const ease = t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
 let frames = 0;
