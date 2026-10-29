@@ -123,6 +123,7 @@
   <button data-v="etage">Étage</button>
   <button data-v="ensemble">Cuisine</button>
   <button id="bUp" style="display:none">Masquer toit & étage</button>
+  <button id="bMeub" style="display:none" class="on">Meubles</button>
   <span class="sep"></span>
   <button id="bPal">🎨 Couleurs</button>
   <button id="bMode">Plan en L + îlot</button>
@@ -136,7 +137,8 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-// version: cuisine3d-v8-maison
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+// version: cuisine3d-v9-meubles
 // Repère : x = est (0 = face intérieure du mur est, négatif vers l'ouest)
 //          z = sud (0 = face intérieure du mur nord), y = hauteur. Mètres.
 const canvas = document.getElementById('c');
@@ -840,6 +842,85 @@ for (const [t,x,z,s] of [['Parcelle ≈ 580 m²',-11.5,-9.5,0.9],['Terrasse',-9.
   ['Voirie · accès',-6.4,20.6,0.8],['29,81 m',-16.9,1.5,0.7],['28,33 m',4.2,4.0,0.7],['20,26 m',-6.4,-12.4,0.7],['20,08 m',-6.4,16.6,0.7],
   ['N',7.0+1.9*Math.cos(NORD_DEG*Math.PI/180),-9.0-1.9*Math.sin(NORD_DEG*Math.PI/180),1.1]]) label(t,DARK,V3(x,0.4,z),s);
 DIM = dimsC;
+// =====================================================================
+// MEUBLES D'EXEMPLE (vues maison) : salon, chambres, salles d'eau — bouton « Meubles », ?meubles=0
+// =====================================================================
+const FURN_R = new THREE.Group(), FURN_E = new THREE.Group(); HG.rdc.add(FURN_R); HG.et.add(FURN_E);
+const FM = {
+  fab:std(0x8d9096,0.95), fab2:std(0x9fa2a7,0.95), oak:std(0xb8946a,0.7), dark:std(0x2a2b2e,0.6), screen:std(0x0d0e10,0.25,{metalness:0.2}),
+  rug:std(0xcbbfae,1), linen:std(0xf3f1ec,0.9), duvet:std(0xa9b8c6,0.9), duvet2:std(0xc8b49a,0.9), head:std(0x8f8478,0.9),
+  cer:std(0xf8f8f6,0.22), chrome:std(0xc9cdd1,0.25,{metalness:0.9}), tray:std(0xd7d6d2,0.6), lamp:std(0xf1e6cf,0.6,{emissive:0x3a3020}),
+};
+function rb(x0,x1,y0,y1,z0,z1,mat,par,r=0.04){
+  if (x1<x0) [x0,x1]=[x1,x0]; if (z1<z0) [z0,z1]=[z1,z0];
+  const w=x1-x0,h=y1-y0,d=z1-z0; r=Math.min(r,w/2-1e-3,h/2-1e-3,d/2-1e-3);
+  const m=new THREE.Mesh(new RoundedBoxGeometry(w,h,d,3,Math.max(r,0.002)),mat);
+  m.position.set((x0+x1)/2,(y0+y1)/2,(z0+z1)/2); m.castShadow=true; m.receiveShadow=true; par.add(m); return m; }
+// ---------- salon : canapé d'angle dos au mur de la suite parentale (x = -7,23), méridienne dans l'angle sud ----------
+{ const P=FURN_R, X0=-7.21, D=0.95, Z0=4.25, Z1=6.85, ZM=5.90, XM=X0+1.60;
+  for (const [za,zb,xb] of [[Z0,ZM,X0+D],[ZM,Z1,XM]]) hb(X0+0.05,xb-0.05,0,0.10,za+0.05,zb-0.05,FM.dark,P);   // socles
+  rb(X0,X0+D,0.10,0.24,Z0,ZM,FM.fab,P,0.03); rb(X0,XM,0.10,0.24,ZM,Z1,FM.fab,P,0.03);                         // assises (structure)
+  rb(X0,X0+0.22,0.10,0.82,Z0,Z1,FM.fab,P,0.05);                                                                // dossier
+  rb(X0,X0+D,0.10,0.62,Z0,Z0+0.18,FM.fab,P,0.05);                                                              // accoudoir nord
+  rb(X0+0.22,XM,0.10,0.62,Z1-0.16,Z1,FM.fab,P,0.05);                                                           // accoudoir méridienne (côté mur)
+  const ns=3, L=(ZM-(Z0+0.18))/ns;
+  for (let i=0;i<ns;i++){ const a=Z0+0.18+i*L;
+    rb(X0+0.24,X0+D,0.24,0.44,a+0.01,a+L-0.01,FM.fab2,P,0.05);                                                 // coussins d'assise
+    rb(X0+0.20,X0+0.42,0.40,0.80,a+0.02,a+L-0.02,FM.fab2,P,0.07); }                                            // coussins de dos
+  rb(X0+0.24,XM,0.24,0.44,ZM+0.01,Z1-0.17,FM.fab2,P,0.05); rb(X0+0.20,X0+0.42,0.40,0.80,ZM+0.02,Z1-0.18,FM.fab2,P,0.07);
+  hb(-6.45,-4.35,0,0.012,4.10,6.50,FM.rug,P,false);                                                             // tapis 2,10 × 2,40
+  rb(-5.86,-5.26,0.36,0.40,4.55,5.65,FM.oak,P,0.012);                                                          // table basse 1,10 × 0,60
+  for (const [x,z] of [[-5.80,4.61],[-5.32,4.61],[-5.80,5.59],[-5.32,5.59]]) hb(x-0.02,x+0.02,0,0.36,z-0.02,z+0.02,FM.dark,P);
+  // meuble TV bas 1,80 m + écran 65" contre le bloc cellier/WC (côté entrée), face au canapé
+  const TZ0=4.65, TZ1=6.45; rb(-4.19,-3.79,0.14,0.50,TZ0,TZ1,FM.oak,P,0.015);
+  for (const z of [TZ0+0.25,TZ1-0.25]) hb(-4.12,-3.86,0,0.14,z-0.02,z+0.02,FM.dark,P);
+  for (let i=1;i<3;i++) hb(-4.192,-4.188,0.17,0.47,TZ0+i*0.6-0.003,TZ0+i*0.6+0.003,FM.dark,P,false);
+  const zc=(TZ0+TZ1)/2; rb(-3.83,-3.79,0.80,1.63,zc-0.725,zc+0.725,FM.dark,P,0.01); hb(-3.835,-3.829,0.82,1.61,zc-0.705,zc+0.705,FM.screen,P,false); }
+// ---------- lits ----------
+function bed(x0,x1,z0,z1,head,par,duvet){            // head : 'x0' | 'x1' (côté tête de lit)
+  hb(x0,x1,0.08,0.30,z0,z1,FM.head,par); 
+  for (const [x,z] of [[x0+0.06,z0+0.06],[x1-0.06,z0+0.06],[x0+0.06,z1-0.06],[x1-0.06,z1-0.06]]) hb(x-0.03,x+0.03,0,0.08,z-0.03,z+0.03,FM.dark,par);
+  rb(x0+0.02,x1-0.02,0.30,0.52,z0+0.02,z1-0.02,FM.linen,par,0.05);
+  const L=x1-x0, hx = head==='x0' ? x0 : x1, s = head==='x0' ? 1 : -1;
+  const da=hx+s*0.62, db=head==='x0'?x1:x0; rb(Math.min(da,db),Math.max(da,db),0.50,0.57,z0-0.01,z1+0.01,duvet,par,0.03);
+  const W=z1-z0, np = W>1.2 ? 2 : 1;
+  for (let i=0;i<np;i++){ const a=z0+0.08+i*(W-0.16)/np, b=a+(W-0.16)/np-0.06; rb(Math.min(hx+s*0.10,hx+s*0.48),Math.max(hx+s*0.10,hx+s*0.48),0.52,0.64,a+0.03,b,FM.linen,par,0.06); }
+  rb(Math.min(hx,hx+s*0.07),Math.max(hx,hx+s*0.07),0,1.05,z0-0.03,z1+0.03,FM.head,par,0.03);               // tête de lit
+}
+function chevet(x0,x1,z0,z1,par){ rb(x0,x1,0,0.50,z0,z1,FM.oak,par,0.02); const x=(x0+x1)/2, z=(z0+z1)/2;
+  cyl(0.06,0.04,x,0.52,z,FM.dark,par,16); cyl(0.012,0.26,x,0.67,z,FM.dark,par,8);
+  const s=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.12,0.16,20,1,true),FM.lamp); s.position.set(x,0.84,z); par.add(s); }
+// chambre RDC : lit 160×200, tête contre le mur pignon sud plein (x = -10,72), 2 chevets
+bed(-10.72,-8.72,3.36,4.96,'x0',FURN_R,FM.duvet2); chevet(-10.70,-10.30,2.86,3.31,FURN_R); chevet(-10.70,-10.30,5.01,5.46,FURN_R);
+// étage : lits 90×200 + 1 chevet
+const BEDS_E=new THREE.Group(); BEDS_E.position.y=YF; FURN_E.add(BEDS_E);
+bed(-7.23,-5.23,1.20,2.10,'x0',BEDS_E,FM.duvet); chevet(-7.21,-6.81,0.70,1.15,BEDS_E);       // chambre 1
+bed(-7.23,-5.23,4.60,5.50,'x0',BEDS_E,FM.duvet); chevet(-7.21,-6.81,5.55,6.00,BEDS_E);       // chambre 2
+bed(-2.97,-0.97,5.25,6.15,'x1',BEDS_E,FM.duvet); chevet(-1.39,-0.99,4.75,5.20,BEDS_E);       // chambre 3
+// ---------- sanitaires ----------
+function vasque(ax,a0,a1,t0,t1,y,par,dir){            // meuble vasque : ax='z' → contre un mur x=t0 (prof. vers t1)
+  const B3=(p0,p1,q0,q1,s0,s1,mat,r)=> ax==='z' ? rb(s0,s1,q0,q1,p0,p1,mat,par,r) : rb(p0,p1,q0,q1,s0,s1,mat,par,r);
+  B3(a0,a1,y+0.30,y+0.82,t0,t1,FM.oak,0.015); B3(a0,a1,y+0.82,y+0.86,t0,t1,FM.cer,0.01);
+  const am=(a0+a1)/2, tm=(t0+t1)/2+0.03*dir, tb=t0+0.06*dir;
+  const bowl=new THREE.Mesh(new THREE.CylinderGeometry(0.20,0.17,0.12,28),FM.cer); bowl.castShadow=true;
+  if (ax==='z') bowl.position.set(tm,y+0.92,am); else bowl.position.set(am,y+0.92,tm); par.add(bowl);
+  if (ax==='z'){ cyl(0.015,0.24,tb,y+1.00,am,FM.chrome,par,10); hb(Math.min(tb,tb+0.12*dir),Math.max(tb,tb+0.12*dir),y+1.10,y+1.12,am-0.012,am+0.012,FM.chrome,par); }
+  else { cyl(0.015,0.24,am,y+1.00,tb,FM.chrome,par,10); hb(am-0.012,am+0.012,y+1.10,y+1.12,Math.min(tb,tb+0.12*dir),Math.max(tb,tb+0.12*dir),FM.chrome,par); }
+  // miroir
+  if (ax==='z') hb(Math.min(t0,t0+0.01*dir),Math.max(t0,t0+0.01*dir),y+1.15,y+1.85,a0+0.05,a1-0.05,FM.chrome,par,false);
+  else hb(a0+0.05,a1-0.05,y+1.15,y+1.85,Math.min(t0,t0+0.01*dir),Math.max(t0,t0+0.01*dir),FM.chrome,par,false);
+}
+// RDC salle d'eau : douche italienne 1,17 × 1,20 (côté est) + paroi fixe, meuble vasque contre le pignon sud (plan)
+hb(-8.92,-7.75,0,0.012,7.32,8.52,FM.tray,FURN_R,false);
+hb(-8.93,-8.92,0.02,2.00,7.62,8.52,M.glass,FURN_R,false); hb(-8.935,-8.915,1.98,2.00,7.62,8.52,FM.chrome,FURN_R,false);
+cyl(0.012,1.2,-7.80,1.35,8.05,FM.chrome,FURN_R,10); cyl(0.12,0.015,-7.92,1.95,8.05,FM.chrome,FURN_R,24); hb(-7.92,-7.80,1.94,1.96,8.04,8.06,FM.chrome,FURN_R);
+vasque('z',7.42,8.42,-10.72,-10.18,0,FURN_R,1);
+// étage salle de bains : baignoire 1,70 × 0,70 sous la fenêtre (plan), meuble vasque contre le pignon nord, WC (plan)
+{ const P=FURN_E, y=YF; rb(-1.72,-0.02,y,y+0.56,0.02,0.72,FM.cer,P,0.05); rb(-1.62,-0.12,y+0.50,y+0.565,0.10,0.64,std(0xe4ebef,0.2),P,0.12);
+  cyl(0.015,0.14,-0.08,y+0.62,0.37,FM.chrome,P,10);
+  vasque('z',1.05,2.00,0,-0.52,y,P,-1);
+  const x=-2.37; rb(x-0.19,x+0.19,y,y+0.40,2.00,2.41,FM.cer,P,0.08); rb(x-0.20,x+0.20,y+0.40,y+0.44,1.90,2.36,FM.cer,P,0.12);
+  rb(x-0.22,x+0.22,y+0.40,y+0.80,2.24,2.40,FM.cer,P,0.03); }
 
 // =====================================================================
 // Modes, vues, interface
@@ -852,10 +933,11 @@ const VIEWS = {
   terrain:  {pos:V3(13, 38, 29), tgt:V3(-5.6, 0, 4.2), fov:45, house:true, et:true, roof:true},
   maison:   {pos:V3(10, 6.5, 20.5), tgt:V3(-4.0, 2.6, 3.6), fov:45, house:true, et:true, roof:true},
   rdc:      {pos:V3(-2.2, 18, 13.5), tgt:V3(-3.9, 0, 3.9), fov:45, house:true, et:false, roof:false},
+  salon:    {pos:V3(-4.9, 2.7, 1.3), tgt:V3(-5.4, 0.6, 5.7), fov:50, house:true, et:false, roof:false},
   etage:    {pos:V3(-3.0, 19.5, 9.8), tgt:V3(-3.5, 2.6, 3.5), fov:45, house:true, et:true, roof:false},
 };
-const VUE_ALIAS = {cuisine:'ensemble', terrain:'terrain', maison:'maison', rdc:'rdc', etage:'etage', 'étage':'etage'};
-let HOUSEON = false, SHOW_ET = true, SHOW_ROOF = true, COTES = true;
+const VUE_ALIAS = {cuisine:'ensemble', terrain:'terrain', maison:'maison', rdc:'rdc', salon:'salon', etage:'etage', 'étage':'etage'};
+let HOUSEON = false, SHOW_ET = true, SHOW_ROOF = true, COTES = true, MEUBLES = new URLSearchParams(location.search).get('meubles')!=='0';
 function legendUpdate(){
   const t = document.getElementById('legTitle');
   if (HOUSEON){ t.textContent = 'Maison & terrain (légende)'; legL.style.display = legU.style.display = 'none'; legM.style.display = ''; return; }
@@ -864,7 +946,7 @@ function legendUpdate(){
   legL.style.display = MODE==='L' ? '' : 'none'; legU.style.display = MODE==='U' ? '' : 'none';
 }
 const legL = document.getElementById('legL'), legU = document.getElementById('legU'), legM = document.getElementById('legM');
-const bUp = document.getElementById('bUp');
+const bUp = document.getElementById('bUp'), bMeub = document.getElementById('bMeub');
 function applyVis(){
   HOUSE.visible = HOUSEON; CTX.visible = !HOUSEON;
   HG.et.visible = SHOW_ET; HG.low.visible = SHOW_ET; HG.roof.visible = SHOW_ET && SHOW_ROOF;
@@ -873,6 +955,7 @@ function applyVis(){
   const all = SHOW_ET && SHOW_ROOF;
   bUp.style.display = HOUSEON ? '' : 'none'; bUp.classList.toggle('on', !all);
   bUp.textContent = all ? 'Masquer toit & étage' : 'Afficher toit & étage';
+  FURN_R.visible = FURN_E.visible = MEUBLES; bMeub.style.display = HOUSEON ? '' : 'none'; bMeub.classList.toggle('on', MEUBLES);
   if (HOUSEON){ sun.position.set(-15.4, 23.4, 16); sun.target.position.set(-5, 0, 3);
     Object.assign(sun.shadow.camera, {left:-19, right:19, top:19, bottom:-19, near:1, far:75}); controls.maxDistance = 85; }
   else { sun.position.set(-6, 9, 8); sun.target.position.set(-2, 0, 3);
@@ -909,6 +992,7 @@ function setView(name, instant=false){
 }
 document.querySelectorAll('#ui button[data-v]').forEach(b=>b.addEventListener('click', ()=>setView(b.dataset.v)));
 document.getElementById('bMode').addEventListener('click', ()=>setMode(MODE==='L'?'U':'L'));
+bMeub.addEventListener('click', ()=>{ MEUBLES = !MEUBLES; setParam('meubles', MEUBLES ? null : '0'); applyVis(); });
 bUp.addEventListener('click', ()=>{ const all = SHOW_ET && SHOW_ROOF; SHOW_ET = SHOW_ROOF = !all; applyVis(); applyHoodLook(); });
 // ---------- Nuancier : façades, plan de travail, sol, crédence ----------
 function setParam(k,v){ const u=new URL(location.href); if (v==null) u.searchParams.delete(k); else u.searchParams.set(k,v); history.replaceState(null,'',u); }
