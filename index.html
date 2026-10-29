@@ -12,6 +12,11 @@
   #ui button{pointer-events:auto;border:0;border-radius:18px;padding:9px 13px;font-size:14px;background:rgba(255,255,255,.92);box-shadow:0 1px 4px rgba(0,0,0,.2);color:#222}
   #ui button.on{background:#2b2f36;color:#fff}
   #ui .sep{flex-basis:100%;height:0}
+  #ui select#selV{pointer-events:auto;border:0;border-radius:18px;padding:9px 30px 9px 13px;font-size:14px;color:#222;box-shadow:0 1px 4px rgba(0,0,0,.2);-webkit-appearance:none;appearance:none;
+    background:rgba(255,255,255,.92) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0h10L5 6z' fill='%23222'/%3E%3C/svg%3E") no-repeat right 12px center;font-family:inherit}
+  #ui select#selV.on{background-color:#2b2f36;color:#fff;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0h10L5 6z' fill='%23fff'/%3E%3C/svg%3E")}
+  #ui select#selV option{color:#222;background:#fff}
+  @media (max-width:500px){ #ui select#selV{padding:8px 28px 8px 10px;font-size:13px} }
   #ui button#bUp{background:#e8eef4}
   #ui button#bUp.on{background:#5b6b7c;color:#fff}
   @media (max-width:500px){ #ui{gap:5px;padding-left:6px;padding-right:6px} #ui button{padding:8px 10px;font-size:13px} }
@@ -102,7 +107,7 @@
         <li>Stationnement non clos (sans portail), allée, terrasse 29,63 m², 2 arbres prévus au plan</li>
         <li>Flèche N : vrai nord ; la façade de la fenêtre cuisine regarde l'ouest (jardin)</li>
       </ul>
-      <p style="margin:2px 0 6px;color:#666">Vues : Terrain, Maison, RDC, Étage ; bouton « toit & étage » pour voir l'intérieur.</p>
+      <p style="margin:2px 0 6px;color:#666">Vues : Terrain, Maison, RDC, Étage, et menu « Pièces ▾ » (une vue par pièce) ; bouton « toit & étage » pour voir l'intérieur.</p>
     </div>
     <h4>Cotes standard</h4>
     <ul>
@@ -122,6 +127,28 @@
   <button data-v="rdc">RDC</button>
   <button data-v="etage">Étage</button>
   <button data-v="ensemble">Cuisine</button>
+  <select id="selV" aria-label="Vues par pièce">
+    <option value="" hidden>Pièces ▾</option>
+    <optgroup label="Rez-de-chaussée">
+      <option value="salon">Séjour / salon</option>
+      <option value="ensemble">Cuisine</option>
+      <option value="entree">Entrée + cellier + WC</option>
+      <option value="suite">Suite parentale</option>
+      <option value="garage">Garage</option>
+      <option value="rdc">RDC complet</option>
+    </optgroup>
+    <optgroup label="Étage">
+      <option value="chambre1">Chambre 1</option>
+      <option value="chambre2">Chambre 2</option>
+      <option value="chambre3">Chambre 3</option>
+      <option value="sdb-etage">Salle de bains</option>
+      <option value="etage">Étage complet</option>
+    </optgroup>
+    <optgroup label="Extérieur">
+      <option value="maison">Maison</option>
+      <option value="terrain">Terrain</option>
+    </optgroup>
+  </select>
   <button id="bUp" style="display:none">Masquer toit & étage</button>
   <button id="bMeub" style="display:none" class="on">Meubles</button>
   <span class="sep"></span>
@@ -138,7 +165,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-// version: cuisine3d-v9-meubles
+// version: cuisine3d-v10-pieces
 // Repère : x = est (0 = face intérieure du mur est, négatif vers l'ouest)
 //          z = sud (0 = face intérieure du mur nord), y = hauteur. Mètres.
 const canvas = document.getElementById('c');
@@ -246,7 +273,8 @@ function floorCanvas(id){ const S=1024, c=cv(S), g=c.getContext('2d'), R=rng(id.
   const grid=(n,J,grout,fn)=>{ g.fillStyle=grout; g.fillRect(0,0,S,S); const t=S/n;
     for(let i=0;i<n;i++) for(let j=0;j<n;j++){ g.save(); g.beginPath(); g.rect(i*t+J/2,j*t+J/2,t-J,t-J); g.clip(); fn(i*t+J/2,j*t+J/2,t-J,i,j); g.restore(); } };
   const flat=(col)=>(x,y,w)=>{ g.fillStyle=col; g.fillRect(x,y,w,w); };
-  if (id==='gres-gris') grid(2,3,'#6c6a66',(x,y,w)=>{ flat(rgb([138,137,133],(R()-.5)*10))(x,y,w); dotsRect(g,R,x,y,w,w,9000,0.5,1.3,['#77766f','#a5a49f','#66655f'],0.35); });
+  if (id==='gris-fonce') grid(2,2,'#76797c',(x,y,w)=>{ flat(rgb([90,92,94],(R()-.5)*8))(x,y,w); dotsRect(g,R,x,y,w,w,9000,0.5,1.2,['#4f5153','#6a6c6f','#7b7d80'],0.3); });
+  else if (id==='gres-gris') grid(2,3,'#6c6a66',(x,y,w)=>{ flat(rgb([138,137,133],(R()-.5)*10))(x,y,w); dotsRect(g,R,x,y,w,w,9000,0.5,1.3,['#77766f','#a5a49f','#66655f'],0.35); });
   else if (id==='beton') grid(2,3,'#8a8782',(x,y,w)=>{ flat(rgb([168,165,158],(R()-.5)*12))(x,y,w);
     for(let k=0;k<10;k++){ const px=x+R()*w,py=y+R()*w,r=60+R()*200,c2=R()<.5?'140,137,130':'190,187,180',a=0.25*R(); const gr=g.createRadialGradient(px,py,0,px,py,r); gr.addColorStop(0,`rgba(${c2},${a})`); gr.addColorStop(1,`rgba(${c2},0)`); g.fillStyle=gr; g.fillRect(px-r,py-r,2*r,2*r); }
     dotsRect(g,R,x,y,w,w,6000,0.4,1,['#8d8a85','#bdbab4'],0.3); });
@@ -779,7 +807,8 @@ wallH('x',-10.72,-7.75,5.68,5.75,0,YC1,[[-9.62,-8.77,0,2.04,'open']],CI,HG.rdc);
 wallH('x',-10.72,-7.75,7.25,7.32,0,YC1,[[-9.85,-9.10,0,2.04,'open']],CI,HG.rdc);
 // sols RDC
 hPlane(IX0,0,0,IZ1,0,M.floor,HG.rdc,1.2);
-hPlane(-10.72,-7.75,2.64,8.52,0,HMat.wood,HG.rdc);
+const M_SUITE = std(0xffffff, 0.6);                                   // sol suite parentale (chambre + dressing + salle d'eau) : ?solsuite=
+hPlane(-10.72,-7.75,2.64,8.52,0,M_SUITE,HG.rdc,1.2);
 hPlane(0.36,3.37,1.84,7.86,YGA,HMat.garF,HG.rdc);
 
 // ---------- escalier 2 quarts tournants, 17 hauteurs (haut côté cuisine) ----------
@@ -802,6 +831,7 @@ hPlane(0.36,3.37,1.84,7.86,YGA,HMat.garF,HG.rdc);
 
 // ---------- étage : plancher (trémie au-dessus de l'escalier) et cloisons ----------
 hb(IX0,-0.90,YC1,YF,0,IZ1,HMat.wood,HG.et); hb(-0.90,0,YC1,YF,0,2.48,HMat.wood,HG.et);
+hPlane(IX0,-0.90,0,IZ1,YF+0.003,M.floor,HG.et,1.2); hPlane(-0.90,0,0,2.48,YF+0.003,M.floor,HG.et,1.2);   // sol maison (même choix que le séjour : ?sol=)
 const YD = YF+2.04;
 wallH('x',IX0,-0.97,3.38,3.45,YF,YC2,[[-4.45,-3.72,YF,YD,'open'],[-3.52,-2.79,YF,YD,'open']],CI,HG.et);
 hb(-3.68,-3.61,YF,YC2,3.45,IZ1,CI,HG.et); hb(-0.97,-0.90,YF,YC2,3.45,IZ1,CI,HG.et);
@@ -935,8 +965,18 @@ const VIEWS = {
   rdc:      {pos:V3(-2.2, 18, 13.5), tgt:V3(-3.9, 0, 3.9), fov:45, house:true, et:false, roof:false},
   salon:    {pos:V3(-4.9, 2.7, 1.3), tgt:V3(-5.4, 0.6, 5.7), fov:50, house:true, et:false, roof:false},
   etage:    {pos:V3(-3.0, 19.5, 9.8), tgt:V3(-3.5, 2.6, 3.5), fov:45, house:true, et:true, roof:false},
+  // vues par pièce (toit masqué ; étage masqué pour les pièces du RDC) — 3/4 plongeant
+  entree:   {pos:V3(-0.9, 8.4, 1.9), tgt:V3(-2.0, 0, 5.4), fov:50, house:true, et:false, roof:false},
+  suite:    {pos:V3(-5.4, 8.2, 6.4), tgt:V3(-9.25, 0, 5.55), fov:50, house:true, et:false, roof:false},
+  garage:   {pos:V3(-1.4, 9.6, 6.0), tgt:V3(1.9, 0, 4.85), fov:50, house:true, et:false, roof:false},
+  chambre1: {pos:V3(-5.0, YF+8.2, 4.9), tgt:V3(-5.9, YF, 1.7), fov:50, house:true, et:true, roof:false},
+  chambre2: {pos:V3(-4.6, YF+8.2, 2.0), tgt:V3(-5.45, YF, 5.2), fov:50, house:true, et:true, roof:false},
+  chambre3: {pos:V3(-3.0, YF+8.2, 2.0), tgt:V3(-2.3, YF, 5.2), fov:50, house:true, et:true, roof:false},
+  'sdb-etage': {pos:V3(-1.7, YF+8.4, 3.7), tgt:V3(-1.4, YF, 1.2), fov:50, house:true, et:true, roof:false},
 };
-const VUE_ALIAS = {cuisine:'ensemble', terrain:'terrain', maison:'maison', rdc:'rdc', salon:'salon', etage:'etage', 'étage':'etage'};
+const VUE_ALIAS = {cuisine:'ensemble', terrain:'terrain', maison:'maison', rdc:'rdc', salon:'salon', sejour:'salon', etage:'etage', 'étage':'etage',
+  entree:'entree', 'entrée':'entree', suite:'suite', garage:'garage', chambre1:'chambre1', chambre2:'chambre2', chambre3:'chambre3', 'sdb-etage':'sdb-etage', sdb:'sdb-etage'};
+const selV = document.getElementById('selV');
 let HOUSEON = false, SHOW_ET = true, SHOW_ROOF = true, COTES = true, MEUBLES = new URLSearchParams(location.search).get('meubles')!=='0';
 function legendUpdate(){
   const t = document.getElementById('legTitle');
@@ -983,6 +1023,8 @@ let anim = null;
 function setView(name, instant=false){
   const v = VIEWS[name]; if (!v) return; curView = name;
   document.querySelectorAll('#ui button[data-v]').forEach(b=>b.classList.toggle('on', b.dataset.v===name));
+  const inSel = !!selV.querySelector(`option[value="${name}"]`) && !document.querySelector(`#ui button[data-v="${name}"]`);
+  selV.value = inSel ? name : ''; selV.classList.toggle('on', inSel);
   const wasHouse = HOUSEON; HOUSEON = !!v.house;
   if (HOUSEON){ SHOW_ET = v.et; SHOW_ROOF = v.roof; if (!wasHouse) document.getElementById('legend').open = false; }
   setParam('vue', HOUSEON ? name : null);
@@ -992,6 +1034,7 @@ function setView(name, instant=false){
 }
 document.querySelectorAll('#ui button[data-v]').forEach(b=>b.addEventListener('click', ()=>setView(b.dataset.v)));
 document.getElementById('bMode').addEventListener('click', ()=>setMode(MODE==='L'?'U':'L'));
+selV.addEventListener('change', ()=>{ if (selV.value) setView(selV.value); selV.blur(); });
 bMeub.addEventListener('click', ()=>{ MEUBLES = !MEUBLES; setParam('meubles', MEUBLES ? null : '0'); applyVis(); });
 bUp.addEventListener('click', ()=>{ const all = SHOW_ET && SHOW_ROOF; SHOW_ET = SHOW_ROOF = !all; applyVis(); applyHoodLook(); });
 // ---------- Nuancier : façades, plan de travail, sol, crédence ----------
@@ -1030,6 +1073,7 @@ const SOL = {
   tomette:{name:'Tomette hexagonale', r:0.8},
   damier:{name:'Damier noir & blanc 30×30', r:0.4},
 };
+const SOLSUITE = {'gris-fonce':{name:'Grès cérame gris foncé 60×60', r:0.55}, ...SOL};
 const CRED = {
   aucune:{name:'Aucune (actuelle)'},
   metro:{name:'Métro blanc 7,5×15', r:0.15},
@@ -1067,6 +1111,12 @@ function setSol(id){
   M.floor.map=solTex(id); M.floor.roughness = SOL[id].r || floorRough; M.floor.needsUpdate=true;
   setParam('sol', id==='actuel' ? null : id); refreshUI();
 }
+let SOLSUITEID='gris-fonce';
+function setSolSuite(id){
+  if (!SOLSUITE[id]) id='gris-fonce'; SOLSUITEID=id;
+  M_SUITE.map=solTex(id); M_SUITE.roughness = SOLSUITE[id].r || floorRough; M_SUITE.needsUpdate=true;
+  setParam('solsuite', id==='gris-fonce' ? null : id); refreshUI();
+}
 function setCredence(id){
   if (!CRED[id]) id='aucune'; CREDID=id; const S=M.splash;
   if (id==='aucune'){ S.map=null; S.color.setHex(0xe2ddd5); S.roughness=0.5; }
@@ -1079,7 +1129,8 @@ document.getElementById('bFac').addEventListener('click', ()=>setFacade(FACADE==
 const GROUPS = [
   {key:'fac', title:'Façades', opts:FAC, cur:()=>FACADE, set:id=>setFacade(id), round:true},
   {key:'plan', title:'Plan de travail / dessus d\'îlot', opts:PLAN, cur:()=>PLANID, set:id=>setPlan(id)},
-  {key:'sol', title:'Carrelage du sol', opts:SOL, cur:()=>SOLID, set:id=>setSol(id)},
+  {key:'sol', title:'Sol maison (séjour, cuisine, entrée, étage…)', opts:SOL, cur:()=>SOLID, set:id=>setSol(id)},
+  {key:'solsuite', title:'Sol suite parentale', opts:SOLSUITE, cur:()=>SOLSUITEID, set:id=>setSolSuite(id)},
   {key:'cred', title:'Crédence', opts:CRED, cur:()=>CREDID, set:id=>setCredence(id)},
 ];
 const pal = document.getElementById('pal'), palBody = document.getElementById('palBody'), bPal = document.getElementById('bPal');
@@ -1098,7 +1149,7 @@ const THUMB = {};
 function thumbFor(gk,id){
   if (gk==='fac') return FAC[id].wood ? thumbURL(woodSq(FAC[id].wood).image, 420) : null;
   if (gk==='plan') return thumbURL(planTex(id).image, PLAN[id].wood ? 256 : 512);
-  if (gk==='sol') return thumbURL(solTex(id).image);
+  if (gk==='sol' || gk==='solsuite') return thumbURL(solTex(id).image);
   if (gk==='cred') return id==='aucune' ? null : id==='plan' ? 'plan' : thumbURL(credTex(id).image);
 }
 let thumbsDone=false;
@@ -1147,6 +1198,7 @@ let fp=(params.get('facade')||'').toLowerCase(); if (fp.startsWith('blanc')) fp=
 setFacade(FAC[fp] ? fp : 'noir');
 setPlan((params.get('plan')||'chene').toLowerCase());
 setSol((params.get('sol')||'actuel').toLowerCase());
+setSolSuite((params.get('solsuite')||'gris-fonce').toLowerCase());
 setCredence((params.get('credence')||'aucune').toLowerCase());
 if (params.get('palette')==='1') openPal(true);
 { const vq = VUE_ALIAS[(params.get('vue')||'').toLowerCase()];
