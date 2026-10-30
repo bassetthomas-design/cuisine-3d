@@ -1044,6 +1044,7 @@ const WOODS = { chene:['#b98a5a',[90,55,25],[150,95,50]], 'chene-clair':['#d3b78
 const FAC = {
   noir:{name:'Noir mat', front:0x1f2023, frontG:0x2a2b2e, carcass:0x2c2d30},
   blanc:{name:'Blanc mat', front:0xf2f1ee, frontG:0xe6e5e1, carcass:0xe2e0dc},
+  'blanc-grain':{name:'Blanc grainé', grain:true, front:0xefeeea, frontG:0xe4e3df, carcass:0xe2e0dc},
   anthracite:{name:'Gris anthracite', front:0x3d4044},
   argile:{name:'Gris argile', front:0xb3a696},
   sauge:{name:'Vert sauge', front:0x9aa68f},
@@ -1082,21 +1083,26 @@ const CRED = {
 };
 const floorDefault = M.floor.map, floorRough = M.floor.roughness;
 const planTex = id => id==='chene' ? wood : memo('p:'+id, ()=> PLAN[id].wood ? woodTexture(...WOODS[PLAN[id].wood]) : toTex(stoneCanvas(id), 1/PLAN[id].S));
+const grainTex = () => memo('grain', ()=>{ const c=document.createElement('canvas'); c.width=c.height=512; const g=c.getContext('2d'), im=g.createImageData(512,512);
+  for (let i=0;i<im.data.length;i+=4){ const v=200+Math.random()*55; im.data[i]=im.data[i+1]=im.data[i+2]=v; im.data[i+3]=255; }
+  g.putImageData(im,0,0); const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(3,3); return t; });
 const woodSq = w => memo('ws:'+w, ()=>toTex(woodSquare(...WOODS[w]), 1/1.2));
 const solTex = id => id==='actuel' ? floorDefault : memo('s:'+id, ()=>toTex(floorCanvas(id)));
 const credTex = id => memo('c:'+id, ()=>toTex(credCanvas(id), 1/0.6));
 let FACADE='noir', PLANID='chene', SOLID='actuel', CREDID='aucune', HANDLE='inox brossé';
 function setFacade(id){
   if (!FAC[id]) id='noir'; FACADE=id; const c=FAC[id], base=new THREE.Color(c.front);
-  if (c.wood){ M.front.map=M.frontG.map=woodSq(c.wood); M.front.color.set(0xffffff); M.frontG.color.set(0xe0e0e0); M.front.roughness=M.frontG.roughness=0.7; }
+  if (c.wood){ M.front.bumpMap=M.frontG.bumpMap=M.front.roughnessMap=M.frontG.roughnessMap=null; M.front.map=M.frontG.map=woodSq(c.wood); M.front.color.set(0xffffff); M.frontG.color.set(0xe0e0e0); M.front.roughness=M.frontG.roughness=0.7; }
   else { M.front.map=M.frontG.map=null; M.front.color.setHex(c.front); M.front.roughness=M.frontG.roughness=0.92;
+    M.front.roughnessMap=M.frontG.roughnessMap=M.front.bumpMap=M.frontG.bumpMap = c.grain ? grainTex() : null; M.front.bumpScale=M.frontG.bumpScale=0.6;
+    if (c.grain) M.front.roughness=M.frontG.roughness=1;
     if (c.frontG) M.frontG.color.setHex(c.frontG); else M.frontG.color.setHex(c.front).multiplyScalar(0.9); }
   if (c.carcass) M.carcass.color.setHex(c.carcass); else M.carcass.color.setHex(c.front).multiplyScalar(0.8);
   M.front.needsUpdate = M.frontG.needsUpdate = true;
   const inox = (0.2126*base.r + 0.7152*base.g + 0.0722*base.b) < 0.18;   // luminance : foncé → inox, clair → noir mat
   const h = inox ? [0xc4c8cc,0.32,0.85] : [0x151517,0.45,0.35];
   HM.color.setHex(h[0]); HM.roughness=h[1]; HM.metalness=h[2]; HANDLE = inox ? 'inox brossé' : 'noir mat';
-  document.getElementById('bFac').textContent = id==='blanc' ? 'Façades : Blanc ⇄ Noir' : 'Façades : Noir ⇄ Blanc';
+  document.getElementById('bFac').textContent = id.startsWith('blanc') ? 'Façades : Blanc ⇄ Noir' : 'Façades : Noir ⇄ Blanc';
   setParam('facade', id==='noir' ? null : id); refreshUI();
 }
 function setPlan(id){
@@ -1194,7 +1200,7 @@ const params = new URLSearchParams(location.search);
 if (params.get('legend') === '0') document.getElementById('legend').open = false;
 setMode((params.get('mode')||'').toLowerCase()==='u' ? 'U' : 'L');
 const ALIAS = {olive:'foret','vert-foret':'foret',cachemire:'argile','gris-argile':'argile',bleu:'bleu-nuit','gris-anthracite':'anthracite','vert-sauge':'sauge',chene:'chene-clair'};
-let fp=(params.get('facade')||'').toLowerCase(); if (fp.startsWith('blanc')) fp='blanc'; fp=ALIAS[fp]||fp;
+let fp=(params.get('facade')||'').toLowerCase(); if (fp.startsWith('blanc') && !fp.startsWith('blanc-grain')) fp='blanc'; if (fp.startsWith('blanc-grain')||fp==='grain') fp='blanc-grain'; fp=ALIAS[fp]||fp;
 setFacade(FAC[fp] ? fp : 'noir');
 setPlan((params.get('plan')||'chene').toLowerCase());
 setSol((params.get('sol')||'actuel').toLowerCase());
