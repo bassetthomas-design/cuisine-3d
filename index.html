@@ -1089,6 +1089,16 @@ const grainTex = () => memo('grain', ()=>{ const c=document.createElement('canva
 const woodSq = w => memo('ws:'+w, ()=>toTex(woodSquare(...WOODS[w]), 1/1.2));
 const solTex = id => id==='actuel' ? floorDefault : memo('s:'+id, ()=>toTex(floorCanvas(id)));
 const credTex = id => memo('c:'+id, ()=>toTex(credCanvas(id), 1/0.6));
+const POIG = {
+  auto:{name:'Auto (selon façade)'},
+  inox:{name:'Inox brossé', front:0xc4c8cc, h:[0xc4c8cc,0.32,0.85]},
+  noir:{name:'Noir mat', front:0x151517, h:[0x151517,0.45,0.35]},
+  champagne:{name:'Champagne', front:0xcbb48a, h:[0xe2cc9c,0.35,0.3,0x5a4a2c]},
+};
+let POIGID='auto', AUTO_HANDLE='inox';
+function applyHandle(){ const k = POIGID==='auto' ? AUTO_HANDLE : POIGID, h=POIG[k].h;
+  HM.color.setHex(h[0]); HM.roughness=h[1]; HM.metalness=h[2]; HM.needsUpdate=true; HM.emissive.setHex(h[3]||0); HANDLE = POIG[k].name.toLowerCase(); }
+function setPoignee(id){ if (!POIG[id]) id='auto'; POIGID=id; applyHandle(); setParam('poignee', id==='auto' ? null : id); if (typeof refreshUI==='function') refreshUI(); }
 let FACADE='noir', PLANID='chene', SOLID='actuel', CREDID='aucune', HANDLE='inox brossé';
 function setFacade(id){
   if (!FAC[id]) id='noir'; FACADE=id; const c=FAC[id], base=new THREE.Color(c.front);
@@ -1100,8 +1110,7 @@ function setFacade(id){
   if (c.carcass) M.carcass.color.setHex(c.carcass); else M.carcass.color.setHex(c.front).multiplyScalar(0.8);
   M.front.needsUpdate = M.frontG.needsUpdate = true;
   const inox = (0.2126*base.r + 0.7152*base.g + 0.0722*base.b) < 0.18;   // luminance : foncé → inox, clair → noir mat
-  const h = inox ? [0xc4c8cc,0.32,0.85] : [0x151517,0.45,0.35];
-  HM.color.setHex(h[0]); HM.roughness=h[1]; HM.metalness=h[2]; HANDLE = inox ? 'inox brossé' : 'noir mat';
+  AUTO_HANDLE = inox ? 'inox' : 'noir'; applyHandle();
   document.getElementById('bFac').textContent = id.startsWith('blanc') ? 'Façades : Blanc ⇄ Noir' : 'Façades : Noir ⇄ Blanc';
   setParam('facade', id==='noir' ? null : id); refreshUI();
 }
@@ -1134,6 +1143,7 @@ document.getElementById('bFac').addEventListener('click', ()=>setFacade(FACADE==
 // ---------- Panneau nuancier ----------
 const GROUPS = [
   {key:'fac', title:'Façades', opts:FAC, cur:()=>FACADE, set:id=>setFacade(id), round:true},
+  {key:'poig', title:'Poignées', opts:POIG, cur:()=>POIGID, set:id=>setPoignee(id), round:true},
   {key:'plan', title:'Plan de travail / dessus d\'îlot', opts:PLAN, cur:()=>PLANID, set:id=>setPlan(id)},
   {key:'sol', title:'Sol maison (séjour, cuisine, entrée, étage…)', opts:SOL, cur:()=>SOLID, set:id=>setSol(id)},
   {key:'solsuite', title:'Sol suite parentale', opts:SOLSUITE, cur:()=>SOLSUITEID, set:id=>setSolSuite(id)},
@@ -1202,6 +1212,7 @@ setMode((params.get('mode')||'').toLowerCase()==='u' ? 'U' : 'L');
 const ALIAS = {olive:'foret','vert-foret':'foret',cachemire:'argile','gris-argile':'argile',bleu:'bleu-nuit','gris-anthracite':'anthracite','vert-sauge':'sauge',chene:'chene-clair'};
 let fp=(params.get('facade')||'').toLowerCase(); if (fp.startsWith('blanc') && !fp.startsWith('blanc-grain')) fp='blanc'; if (fp.startsWith('blanc-grain')||fp==='grain') fp='blanc-grain'; fp=ALIAS[fp]||fp;
 setFacade(FAC[fp] ? fp : 'noir');
+setPoignee((params.get('poignee')||params.get('poignees')||'auto').toLowerCase());
 setPlan((params.get('plan')||'chene').toLowerCase());
 setSol((params.get('sol')||'actuel').toLowerCase());
 setSolSuite((params.get('solsuite')||'gris-fonce').toLowerCase());
