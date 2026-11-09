@@ -128,6 +128,7 @@
     <optgroup label="Extérieur">
       <option value="maison">Maison</option>
       <option value="terrain">Terrain</option>
+      <option value="voitures">Voitures (stationnement)</option>
     </optgroup>
   </select>
   <button id="bUp" style="display:none">Masquer toit & étage</button>
@@ -726,6 +727,39 @@ for (const [x,z] of [[0.38,-6.63],[-1.08,-7.43]]){                // 2 arbres fi
 { const s=new THREE.Shape(); s.moveTo(0,1.4); s.lineTo(0.55,-0.5); s.lineTo(0,-0.15); s.lineTo(-0.55,-0.5); s.closePath();
   const m=new THREE.Mesh(new THREE.ShapeGeometry(s),HMat.arrow); m.geometry.rotateX(-Math.PI/2); m.rotation.y=-(90-NORD_DEG)*Math.PI/180; m.position.set(7.0,YG+0.02,-9.0); HG.site.add(m); }
 
+// ---------- voitures sur le stationnement (formes simplifiées, dimensions constructeur) ----------
+function carMesh(o){                     // o : L, W, H, prof [[x,y]…], glass [[x,y]…], wheels [xr,xf], r, col
+  const g = new THREE.Group(), bt=0.05;
+  const ext = (pts,w,mat,bev)=>{ const s=new THREE.Shape(pts.map(p=>new THREE.Vector2(p[0],p[1])));
+    const ge=new THREE.ExtrudeGeometry(s,{depth:w-(bev?2*bt:0),bevelEnabled:bev,bevelThickness:bt,bevelSize:bev?0.04:0,bevelSegments:3});
+    ge.translate(0,0,-(w-(bev?2*bt:0))/2); const m=new THREE.Mesh(ge,mat); m.castShadow=true; m.receiveShadow=true; g.add(m); return m; };
+  const paint=std(o.col,0.3,{metalness:o.met??0.25}), glass=std(0x15181c,0.12,{metalness:0.3}), tyre=std(0x1b1b1d,0.9),
+        rim=std(o.rim||0x9a9da1,0.35,{metalness:0.6}), lamp=std(0xffffff,0.3,{emissive:0xdfe8f0,emissiveIntensity:0.7}),
+        red=std(0x8a0d12,0.3,{emissive:0x5a0508}), trim=std(0x202124,0.6);
+  ext(o.prof,o.W,paint,true);
+  ext(o.glass,o.W+0.03,glass,false);
+  if (o.roofGlass){ const [a,b,y]=o.roofGlass; const m=new THREE.Mesh(new THREE.BoxGeometry(b-a,0.012,o.W-0.22),glass); m.position.set((a+b)/2,y,0); g.add(m); }
+  const box=(x0,x1,y0,y1,w,mat)=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(x1-x0,y1-y0,w),mat); m.position.set((x0+x1)/2,(y0+y1)/2,0); g.add(m); return m; };
+  for (const [x0,x1,y0,y1,w,k] of o.lights) box(x0,x1,y0,y1,w,k==='r'?red:lamp);
+  box(-o.L/2+0.25,o.L/2-0.25,0.16,0.30,o.W+0.01,trim);                       // bas de caisse
+  for (const x of o.wheels) for (const s of [-1,1]){
+    const t=new THREE.Mesh(new THREE.CylinderGeometry(o.r,o.r,0.24,28),tyre); t.rotation.x=Math.PI/2; t.position.set(x,o.r,s*(o.W/2-0.13)); t.castShadow=true; g.add(t);
+    const j=new THREE.Mesh(new THREE.CylinderGeometry(o.r*0.68,o.r*0.68,0.02,20),rim); j.rotation.x=Math.PI/2; j.position.set(x,o.r,s*(o.W/2-0.005)); g.add(j); }
+  return g; }
+// Tesla Model Y Juniper (Premium), Quicksilver : 4,79 × 1,92 × 1,62 m, empattement 2,89 m, barres lumineuses avant/arrière, toit vitré
+const MODELY = carMesh({L:4.79, W:1.92, H:1.62, col:0xd4d7da, met:0.35, rim:0x6f7378, r:0.37, wheels:[-1.47,1.42],
+  prof:[[-2.35,0.22],[-2.37,0.78],[-2.28,0.97],[-2.05,1.10],[-1.55,1.49],[-0.6,1.61],[0.35,1.59],[1.25,1.02],[2.18,0.86],[2.37,0.66],[2.37,0.24],[1.9,0.17],[-1.9,0.17]],
+  glass:[[-1.98,1.09],[-1.53,1.46],[-0.6,1.575],[0.33,1.555],[1.17,1.04],[1.17,0.99],[-1.98,1.0]],
+  roofGlass:[-1.45,0.3,1.615],
+  lights:[[2.23,2.30,0.86,0.89,1.70,'w'],[2.33,2.40,0.72,0.77,1.55,'w'],[-2.33,-2.26,0.95,0.99,1.72,'r']]});
+// Opel Corsa (F), gris, 1.2 PureTech : 4,06 × 1,77 × 1,43 m, empattement 2,54 m
+const CORSA = carMesh({L:4.06, W:1.77, H:1.43, col:0x8e9296, met:0.15, rim:0x2c2e31, r:0.32, wheels:[-1.24,1.30],
+  prof:[[-2.0,0.22],[-2.03,0.85],[-1.98,1.05],[-1.85,1.32],[-1.55,1.42],[0.15,1.43],[0.95,0.98],[1.85,0.80],[2.03,0.62],[2.03,0.24],[1.6,0.15],[-1.6,0.15]],
+  glass:[[-1.84,1.04],[-1.73,1.29],[-1.5,1.385],[0.12,1.39],[0.86,1.0],[0.86,0.95],[-1.84,0.95]],
+  lights:[[1.86,1.97,0.70,0.78,1.40,'w'],[-2.05,-1.98,0.88,1.0,1.55,'r']]});
+// garées en marche arrière, nez vers la voirie (+z), côte à côte sur l'aire non close
+for (const [c,x] of [[MODELY,2.30],[CORSA,-0.05]]){ c.rotation.y=-Math.PI/2; c.position.set(x,YG+0.03,15.45); HG.site.add(c); }
+
 // ---------- étiquettes (noms génériques + surfaces) ----------
 DIM = HG.lbR;
 for (const [t,x,z,y] of [['Séjour / cuisine · 42,05 m²',-5.4,4.3,1.0],['Cellier 2,54 m²',-3.0,4.95,1.0],['WC 1,22 m²',-3.0,6.45,1.0],
@@ -735,7 +769,7 @@ DIM = HG.lbE;
 for (const [t,x,z] of [['Chambre 1 · 9,02 m²',-5.9,1.9],['Dressing 3,97 m²',-3.66,0.6],['Salle de bains 6,67 m²',-1.4,1.5],['Dégagement 3,03 m²',-2.7,2.93],
   ['Chambre 2 · 12,15 m²',-5.4,5.2],['Chambre 3 · 9,04 m²',-2.3,5.2],['Trémie escalier',-0.45,4.7]]) label(t,DARK,V3(x,YF+0.8,z),0.62);
 DIM = HG.lbS;
-for (const [t,x,z,s] of [['Parcelle ≈ 580 m²',-11.5,-9.5,0.9],['Terrasse',-9.3,-1.4,0.75],['Stationnement (non clos)',1.1,15.4,0.75],['Allée',-1.6,10.6,0.7],
+for (const [t,x,z,s] of [['Parcelle ≈ 580 m²',-11.5,-9.5,0.9],['Terrasse',-9.3,-1.4,0.75],['Stationnement (non clos)',1.1,12.95,0.75],['Allée',-1.6,10.6,0.7],
   ['Voirie · accès',-6.4,20.6,0.8],['29,81 m',-16.9,1.5,0.7],['28,33 m',4.2,4.0,0.7],['20,26 m',-6.4,-12.4,0.7],['20,08 m',-6.4,16.6,0.7],
   ['N',7.0+1.9*Math.cos(NORD_DEG*Math.PI/180),-9.0-1.9*Math.sin(NORD_DEG*Math.PI/180),1.1]]) label(t,DARK,V3(x,0.4,z),s);
 DIM = dimsC;
@@ -835,13 +869,14 @@ const VIEWS = {
   entree:   {pos:V3(-0.9, 8.4, 1.9), tgt:V3(-2.0, 0, 5.4), fov:50, house:true, et:false, roof:false},
   suite:    {pos:V3(-5.4, 8.2, 6.4), tgt:V3(-9.25, 0, 5.55), fov:50, house:true, et:false, roof:false},
   garage:   {pos:V3(-1.4, 9.6, 6.0), tgt:V3(1.9, 0, 4.85), fov:50, house:true, et:false, roof:false},
+  voitures: {pos:V3(9.5, 4.2, 23.5), tgt:V3(1.1, 0.6, 14.6), fov:45, house:true, et:true, roof:true},
   chambre1: {pos:V3(-5.0, YF+8.2, 4.9), tgt:V3(-5.9, YF, 1.7), fov:50, house:true, et:true, roof:false},
   chambre2: {pos:V3(-4.6, YF+8.2, 2.0), tgt:V3(-5.45, YF, 5.2), fov:50, house:true, et:true, roof:false},
   chambre3: {pos:V3(-3.0, YF+8.2, 2.0), tgt:V3(-2.3, YF, 5.2), fov:50, house:true, et:true, roof:false},
   'sdb-etage': {pos:V3(-1.7, YF+8.4, 3.7), tgt:V3(-1.4, YF, 1.2), fov:50, house:true, et:true, roof:false},
 };
 const VUE_ALIAS = {cuisine:'ensemble', dessus:'dessus', ensemble:'ensemble', terrain:'terrain', maison:'maison', rdc:'rdc', salon:'salon', sejour:'salon', etage:'etage', 'étage':'etage',
-  entree:'entree', 'entrée':'entree', suite:'suite', garage:'garage', chambre1:'chambre1', chambre2:'chambre2', chambre3:'chambre3', 'sdb-etage':'sdb-etage', sdb:'sdb-etage'};
+  entree:'entree', 'entrée':'entree', suite:'suite', garage:'garage', voitures:'voitures', parking:'voitures', chambre1:'chambre1', chambre2:'chambre2', chambre3:'chambre3', 'sdb-etage':'sdb-etage', sdb:'sdb-etage'};
 const selV = document.getElementById('selV');
 let HOUSEON = false, SHOW_ET = true, SHOW_ROOF = true, COTES = true, MEUBLES = new URLSearchParams(location.search).get('meubles')!=='0';
 function legendUpdate(){
