@@ -129,6 +129,7 @@
       <option value="maison">Maison</option>
       <option value="terrain">Terrain</option>
       <option value="voitures">Voitures (stationnement)</option>
+      <option value="cloture">Muret et palissade</option>
     </optgroup>
   </select>
   <button id="bUp" style="display:none">Masquer toit & étage</button>
@@ -553,6 +554,7 @@ const HMat = {
   wood:std(0xd8bf99,0.75), garF:std(0xa9a8a3), terr:std(0xc9bfb0,0.9), allee:std(0xd8cbb1,1), park:std(0xc5c0b5,1),
   grass:std(0x93b066,1), out:std(0xd2d7cb,1), road:std(0x7e8186,0.95), limit:std(0xc0392b,0.8),
   trunk:std(0x6b5039,0.9), leaf:std(0x6e9a4c,0.9,{flatShading:true}), arrow:std(0x2b2f36,0.6),
+  muret:std(0xece6d8,0.92), chap:std(0xe4ded0,0.88), pal:std(0x3a3d40,0.9),
 };
 const HWALLMATS = [HMat.ext, HMat.int];
 function hb(x0,x1,y0,y1,z0,z1,mat,par,cast=true){
@@ -892,6 +894,71 @@ const CORSA = carMesh({key:'c', L:4.06, W:1.77, col:0x84888d, met:0.6, rough:0.2
 // garées en marche arrière, nez vers la voirie (+z), côte à côte sur l'aire non close
 for (const [c,x] of [[MODELY,2.30],[CORSA,-0.05]]){ c.rotation.y=-Math.PI/2; c.position.set(x,YG+0.03,15.45); HG.site.add(c); }
 
+// ---------- clôture : muret 0,60 m blanc cassé + palissade anthracite (ouverture à l'entrée, sans portail) ----------
+{ const W=0.20, HW=W/2, Hm=0.60, Ht=1.80, Hcap=0.05, Hb=Hm-Hcap;
+  const POST=0.08, SP=1.80, nSlat=7, slatH=0.14, slatGap=0.025, slatT=0.02;
+  const slatMarg=(Ht-Hm-nSlat*slatH-(nSlat-1)*slatGap)/2;
+  const inset=(pts,d)=>{
+    const n=pts.length, off=[];
+    for (let i=0;i<n;i++){
+      const p=pts[i], q=pts[(i+1)%n], dx=q[0]-p[0], dz=q[1]-p[1], L=Math.hypot(dx,dz);
+      off.push({a:[p[0]+(-dz/L)*d, p[1]+(dx/L)*d], u:[dx/L,dz/L]}); }
+    const hit=(P,u,Q,v)=>{ const det=u[0]*v[1]-u[1]*v[0], t=((Q[0]-P[0])*v[1]-(Q[1]-P[1])*v[0])/det; return [P[0]+t*u[0], P[1]+t*u[1]]; };
+    return off.map((e,i)=>hit(off[(i+n-1)%n].a, off[(i+n-1)%n].u, e.a, e.u));
+  };
+  const [IA,IB,IC,ID]=inset([PA,PB,PC,PD], HW);
+  const ox=-1.37, oz=PD[1]+(PC[1]-PD[1])*(ox-PD[0])/(PC[0]-PD[0]);
+  const sdx=PD[0]-PC[0], sdz=PD[1]-PC[1], sL=Math.hypot(sdx,sdz), snx=-sdz/sL, snz=sdx/sL;
+  const OW=[ox+snx*HW, oz+snz*HW];
+  const EG=[IB[0], 1.58];                          // arrêt juste avant le mur du garage (z = 1,64), presque sur la limite +x
+  const path=[OW, ID, IA, IB, EG];
+  const ribbon=(pts,half)=>{
+    const n=pts.length, L=[], R=[];
+    for (let i=0;i<n;i++){
+      const p=pts[i]; let nx,nz;
+      if (i===0||i===n-1){
+        const s0=i===0?pts[0]:pts[n-2], s1=i===0?pts[1]:pts[n-1], dx=s1[0]-s0[0], dz=s1[1]-s0[1], len=Math.hypot(dx,dz);
+        nx=-dz/len; nz=dx/len;
+      } else {
+        const p0=pts[i-1], p2=pts[i+1];
+        const d1=[p[0]-p0[0],p[1]-p0[1]], l1=Math.hypot(d1[0],d1[1]);
+        const d2=[p2[0]-p[0],p2[1]-p[1]], l2=Math.hypot(d2[0],d2[1]);
+        const n1=[-d1[1]/l1,d1[0]/l1], n2=[-d2[1]/l2,d2[0]/l2], den=1+n1[0]*n2[0]+n1[1]*n2[1];
+        if (Math.abs(den)<1e-3){ nx=n1[0]; nz=n1[1]; } else { nx=(n1[0]+n2[0])/den; nz=(n1[1]+n2[1])/den; }
+      }
+      L.push([p[0]+nx*half,p[1]+nz*half]); R.push([p[0]-nx*half,p[1]-nz*half]);
+    }
+    return L.concat(R.reverse());
+  };
+  prismY(ribbon(path,HW), YG, YG+Hb, HMat.muret, HG.site);
+  prismY(ribbon(path,HW+0.03), YG+Hb, YG+Hm, HMat.chap, HG.site);
+  const posts=[];
+  for (let i=0;i<path.length-1;i++){
+    const a=path[i], b=path[i+1], dx=b[0]-a[0], dz=b[1]-a[1], L=Math.hypot(dx,dz);
+    const n=Math.max(1, Math.round(L/SP)), ang=-Math.atan2(dz,dx);
+    for (let k=0;k<=n;k++){ if (k===0 && i>0) continue; posts.push({x:a[0]+dx*k/n, z:a[1]+dz*k/n, ang}); }
+  }
+  const dummy=new THREE.Object3D();
+  const postMesh=new THREE.InstancedMesh(new THREE.BoxGeometry(POST, Ht-Hm+0.02, POST), HMat.pal, posts.length);
+  postMesh.castShadow=postMesh.receiveShadow=true; postMesh.frustumCulled=false;
+  const py=YG+Hm-0.02+(Ht-Hm+0.02)/2;
+  posts.forEach((p,i)=>{ dummy.position.set(p.x,py,p.z); dummy.rotation.set(0,p.ang,0); dummy.scale.set(1,1,1); dummy.updateMatrix(); postMesh.setMatrixAt(i, dummy.matrix); });
+  postMesh.instanceMatrix.needsUpdate=true; HG.site.add(postMesh);
+  const slatMesh=new THREE.InstancedMesh(new THREE.BoxGeometry(1,slatH,slatT), HMat.pal, (posts.length-1)*nSlat);
+  slatMesh.castShadow=slatMesh.receiveShadow=true; slatMesh.frustumCulled=false;
+  let si=0;
+  for (let j=0;j<posts.length-1;j++){
+    const a=posts[j], b=posts[j+1], dx=b.x-a.x, dz=b.z-a.z, L=Math.hypot(dx,dz)-POST-0.012;
+    if (L<0.05) continue;
+    const mx=(a.x+b.x)/2, mz=(a.z+b.z)/2, ang=-Math.atan2(dz,dx);
+    for (let s=0;s<nSlat;s++){
+      dummy.position.set(mx, YG+Hm+slatMarg+slatH/2+s*(slatH+slatGap), mz);
+      dummy.rotation.set(0,ang,0); dummy.scale.set(L,1,1); dummy.updateMatrix(); slatMesh.setMatrixAt(si++, dummy.matrix);
+    }
+  }
+  slatMesh.count=si; slatMesh.instanceMatrix.needsUpdate=true; HG.site.add(slatMesh);
+}
+
 // ---------- étiquettes (noms génériques + surfaces) ----------
 DIM = HG.lbR;
 for (const [t,x,z,y] of [['Séjour / cuisine · 42,05 m²',-5.4,4.3,1.0],['Cellier 2,54 m²',-3.0,4.95,1.0],['WC 1,22 m²',-3.0,6.45,1.0],
@@ -1006,9 +1073,11 @@ const VIEWS = {
   chambre2: {pos:V3(-4.6, YF+8.2, 2.0), tgt:V3(-5.45, YF, 5.2), fov:50, house:true, et:true, roof:false},
   chambre3: {pos:V3(-3.0, YF+8.2, 2.0), tgt:V3(-2.3, YF, 5.2), fov:50, house:true, et:true, roof:false},
   'sdb-etage': {pos:V3(-1.7, YF+8.4, 3.7), tgt:V3(-1.4, YF, 1.2), fov:50, house:true, et:true, roof:false},
+  cloture:  {pos:V3(13, 19, 32), tgt:V3(-6.0, 0.7, 3.2), fov:48, house:true, et:true, roof:true},
 };
 const VUE_ALIAS = {cuisine:'ensemble', dessus:'dessus', ensemble:'ensemble', terrain:'terrain', maison:'maison', rdc:'rdc', salon:'salon', sejour:'salon', etage:'etage', 'étage':'etage',
-  entree:'entree', 'entrée':'entree', suite:'suite', garage:'garage', voitures:'voitures', parking:'voitures', chambre1:'chambre1', chambre2:'chambre2', chambre3:'chambre3', 'sdb-etage':'sdb-etage', sdb:'sdb-etage'};
+  entree:'entree', 'entrée':'entree', suite:'suite', garage:'garage', voitures:'voitures', parking:'voitures', chambre1:'chambre1', chambre2:'chambre2', chambre3:'chambre3', 'sdb-etage':'sdb-etage', sdb:'sdb-etage',
+  cloture:'cloture', 'clôture':'cloture', palissade:'cloture', muret:'cloture'};
 const selV = document.getElementById('selV');
 let HOUSEON = false, SHOW_ET = true, SHOW_ROOF = true, COTES = true, MEUBLES = new URLSearchParams(location.search).get('meubles')!=='0';
 function legendUpdate(){
@@ -1022,7 +1091,7 @@ function applyVis(){
   HOUSE.visible = HOUSEON; CTX.visible = !HOUSEON;
   HG.et.visible = SHOW_ET; HG.low.visible = SHOW_ET; HG.roof.visible = SHOW_ET && SHOW_ROOF;
   dims.visible = COTES && !HOUSEON;
-  HG.lbR.visible = COTES && !SHOW_ET; HG.lbE.visible = COTES && SHOW_ET && !SHOW_ROOF; HG.lbS.visible = COTES && SHOW_ET && SHOW_ROOF && curView==='terrain';
+  HG.lbR.visible = COTES && !SHOW_ET; HG.lbE.visible = COTES && SHOW_ET && !SHOW_ROOF; HG.lbS.visible = COTES && SHOW_ET && SHOW_ROOF && (curView==='terrain' || curView==='cloture');
   const all = SHOW_ET && SHOW_ROOF;
   bUp.style.display = HOUSEON ? '' : 'none'; bUp.classList.toggle('on', !all);
   bUp.textContent = all ? 'Masquer toit & étage' : 'Afficher toit & étage';
